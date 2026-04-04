@@ -1,0 +1,29 @@
+const express = require("express");
+const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Routes
+const authRoutes = require("./routes/authRoutes");
+const auctionRoutes = require("./routes/auctionRoutes");
+const bidRoutes = require("./routes/bidRoutes");
+
+app.use("/api/auth", authRoutes);
+app.use("/api/auctions", auctionRoutes);
+app.use("/api/bids", bidRoutes);
+
+// Socket setup
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
+
+require("./sockets/socket")(io);
+
+server.listen(5000, () => {
+  console.log("Server running on 5000");
+});
