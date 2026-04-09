@@ -1,0 +1,33 @@
+const API_BASE = "/api";
+
+export const api = {
+  get: async (endpoint: string) => {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || "Something went wrong");
+    }
+    return res.json();
+  },
+  post: async (endpoint: string, data: any) => {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || "Something went wrong");
+    }
+    return res.json();
+  },
+};
