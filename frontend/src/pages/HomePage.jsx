@@ -4,18 +4,8 @@ import { Search } from "lucide-react";
 import { api } from "../lib/api";
 import { AuctionCard } from "../components/AuctionCard";
 
-interface Auction {
-  id: number;
-  title: string;
-  description: string;
-  starting_price: number;
-  current_price: number;
-  end_time: string;
-  seller_name: string;
-}
-
 export const HomePage = () => {
-  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

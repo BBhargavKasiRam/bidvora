@@ -3,17 +3,7 @@ import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { Clock, ChevronRight } from "lucide-react";
 
-interface Auction {
-  id: number;
-  title: string;
-  description: string;
-  starting_price: number;
-  current_price: number;
-  end_time: string;
-  seller_name: string;
-}
-
-export const AuctionCard = ({ auction }: { auction: Auction }) => {
+export const AuctionCard = ({ auction }) => {
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {

@@ -11,7 +11,7 @@ export const CreateAuctionPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await api.post("/auctions", { 
@@ -21,7 +21,7 @@ export const CreateAuctionPage = () => {
         duration: Number(duration) 
       });
       navigate("/");
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
     }
   };

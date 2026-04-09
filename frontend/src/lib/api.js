@@ -1,7 +1,8 @@
-const API_BASE = "/api";
+// Pointing to your local Express backend running on port 5000
+const API_BASE = "http://localhost:5000/api";
 
 export const api = {
-  get: async (endpoint: string) => {
+  get: async (endpoint) => {
     const token = localStorage.getItem("token");
     const res = await fetch(`${API_BASE}${endpoint}`, {
       headers: {
@@ -14,7 +15,7 @@ export const api = {
     }
     return res.json();
   },
-  post: async (endpoint: string, data: any) => {
+  post: async (endpoint, data) => {
     const token = localStorage.getItem("token");
     const res = await fetch(`${API_BASE}${endpoint}`, {
       method: "POST",

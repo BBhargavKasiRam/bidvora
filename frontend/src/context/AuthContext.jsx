@@ -1,27 +1,14 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState } from "react";
 
-interface User {
-  id: number;
-  name: string;
-  role: string;
-}
+const AuthContext = createContext(undefined);
 
-interface AuthContextType {
-  user: User | null;
-  login: (token: string, user: User) => void;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(() => {
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(() => {
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
   });
 
-  const login = (token: string, user: User) => {
+  const login = (token, user) => {
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
     setUser(user);

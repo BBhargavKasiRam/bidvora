@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 
 export const AuctionDetailPage = () => {
   const { id } = useParams();
-  const [auction, setAuction] = useState<any>(null);
+  const [auction, setAuction] = useState(null);
   const [bidAmount, setBidAmount] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -29,7 +29,7 @@ export const AuctionDetailPage = () => {
     return () => clearInterval(interval);
   }, [id]);
 
-  const handleBid = async (e: React.FormEvent) => {
+  const handleBid = async (e) => {
     e.preventDefault();
     if (!user) return navigate("/login");
     setError("");
@@ -39,7 +39,7 @@ export const AuctionDetailPage = () => {
       setSuccess("Bid accepted. You are the current high bidder.");
       setBidAmount("");
       fetchAuction();
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
     }
   };
@@ -72,7 +72,7 @@ export const AuctionDetailPage = () => {
               Bidding History
             </h3>
             <div className="space-y-6">
-              {auction.bids?.map((bid: any) => (
+              {auction.bids?.map((bid) => (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
