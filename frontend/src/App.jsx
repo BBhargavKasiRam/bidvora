@@ -21,7 +21,7 @@ export default function App() {
     <BrowserRouter>
       <div className="min-h-screen flex flex-col bg-paper">
           <Navbar />
-          <main className="flex-grow">
+          <main className="grow">
             <AnimatePresence mode="wait">
               <Routes>
                 <Route path="/" element={isAuthenticated ? <DashboardPage /> : <LandingPage />} />
