@@ -15,18 +15,20 @@ export const Navbar = () => {
       </Link>
       
       <div className="flex items-center gap-8">
-        <Link to="/" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Browse</Link>
+        <Link to="/" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Dashboard</Link>
+        <Link to="/browse" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Gallery</Link>
         {user ? (
           <>
+            <Link to="/orders" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Orders</Link>
             <Link to="/create" className="flex items-center gap-2 text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">
               <PlusCircle className="w-4 h-4" />
               List Item
             </Link>
             <div className="flex items-center gap-4 pl-8 border-l border-ink/10">
-              <div className="text-right">
-                <p className="text-[10px] uppercase tracking-widest text-ink/40">Collector</p>
-                <p className="text-xs font-bold">{user.name}</p>
-              </div>
+              <Link to="/profile" className="text-right group">
+                <p className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-gold transition-colors">Collector</p>
+                <p className="text-xs font-bold group-hover:text-gold transition-colors">{user.name}</p>
+              </Link>
               <button 
                 onClick={() => { logout(); navigate("/login"); }}
                 className="p-2 hover:bg-ink/5 rounded-full transition-colors"

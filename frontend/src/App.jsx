@@ -1,29 +1,37 @@
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
-import { AuthProvider } from "./context/AuthContext";
 import { Navbar } from "./components/Navbar";
 import { HomePage } from "./pages/HomePage";
+import { LandingPage } from "./pages/LandingPage";
+import { DashboardPage } from "./pages/DashboardPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { OrdersPage } from "./pages/OrdersPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { CreateAuctionPage } from "./pages/CreateAuctionPage";
 import { AuctionDetailPage } from "./pages/AuctionDetailPage";
 import { Gavel } from "lucide-react";
+import { useAuth } from "./context/AuthContext";
 
 export default function App() {
+  const { isAuthenticated } = useAuth();
+
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <div className="min-h-screen flex flex-col bg-paper">
+    <BrowserRouter>
+      <div className="min-h-screen flex flex-col bg-paper">
           <Navbar />
           <main className="flex-grow">
             <AnimatePresence mode="wait">
               <Routes>
-                <Route path="/" element={<HomePage />} />
+                <Route path="/" element={isAuthenticated ? <DashboardPage /> : <LandingPage />} />
+                <Route path="/browse" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/create" element={<CreateAuctionPage />} />
                 <Route path="/auction/:id" element={<AuctionDetailPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/orders" element={<OrdersPage />} />
               </Routes>
             </AnimatePresence>
           </main>
@@ -70,6 +78,5 @@ export default function App() {
           </footer>
         </div>
       </BrowserRouter>
-    </AuthProvider>
   );
 }

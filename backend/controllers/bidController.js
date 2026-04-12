@@ -32,9 +32,9 @@ exports.placeBid = (req, res) => {
     // insert bid
     db.query(
       "INSERT INTO bids (auction_id,user_id,amount) VALUES (?,?,?)",
-      [auction_id, 1, amount]
+      [auction_id, req.user.id, amount]
     );
 
-    res.send("Bid placed successfully");
+    res.json({ message: "Bid placed successfully" });
   });
 };

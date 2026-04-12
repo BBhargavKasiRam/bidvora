@@ -12,7 +12,7 @@ exports.register = async (req, res) => {
     [name, email, hashed, role],
     (err) => {
       if (err) return res.send(err);
-      res.send("User registered");
+      res.json({ message: "User registered" });
     }
   );
 };
@@ -30,6 +30,7 @@ exports.login = (req, res) => {
 
     const token = jwt.sign({ id: user.id }, "secret");
 
-    res.json({ token });
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({ token, user: userWithoutPassword });
   });
 };
