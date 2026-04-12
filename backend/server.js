@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+require("dotenv").config(); // ✅ Load env variables
 
 const app = express();
 
@@ -20,6 +21,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/auctions", auctionRoutes);
 app.use("/api/bids", bidRoutes);
 
-app.listen(5000, () => {
-  console.log("Server running on 5000");
+// ✅ Use PORT from .env
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on ${PORT}`);
 });
