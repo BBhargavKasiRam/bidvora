@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 export const LoginPage = () => {
   const [step, setStep] = useState(1);
   const [animating, setAnimating] = useState(false);
-  const [loading, setLoading] = useState(false); // ✅ added
+  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     email: "",
@@ -19,7 +19,6 @@ export const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // ✅ STRONG EMAIL REGEX
   const emailRegex =
     /^(?!.*\.\.)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -28,8 +27,7 @@ export const LoginPage = () => {
       const email = form.email.trim();
 
       if (!email) return "Email is required";
-      if (!emailRegex.test(email))
-        return "Enter valid email";
+      if (!emailRegex.test(email)) return "Enter valid email";
     }
 
     if (step === 2) {
@@ -40,18 +38,17 @@ export const LoginPage = () => {
   };
 
   const handleNext = async () => {
-    if (loading) return; // ✅ prevent spam
+    if (loading) return;
 
     const err = validateStep();
-
     if (err) {
-      setError(err + " "); // ✅ always show error
+      setError(err + " ");
       return;
     }
 
     setError("");
 
-    // STEP CHANGE
+    // STEP 1 → go to password
     if (step === 1) {
       setAnimating(true);
       setTimeout(() => {
@@ -61,7 +58,7 @@ export const LoginPage = () => {
       return;
     }
 
-    // LOGIN
+    // STEP 2 → LOGIN
     try {
       setLoading(true);
 
@@ -72,19 +69,28 @@ export const LoginPage = () => {
 
       login(res.token, res.user);
       navigate("/");
+
     } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Invalid credentials";
+      let msg = "Invalid credentials";
+
+      // 🔥 FULL SAFE ERROR HANDLING
+      if (err && err.message && !err.message.includes("JSON")) {
+        msg = err.message;
+      }
 
       setError(msg + " ");
+
+      // 🔥 optional: go back to email step for retry
+      setStep(1);
+
     } finally {
       setLoading(false);
     }
   };
 
   const handleBack = () => {
+    if (loading) return;
+
     setError("");
 
     setAnimating(true);
@@ -97,7 +103,6 @@ export const LoginPage = () => {
 
   return (
     <div className="h-[calc(100vh-80px)] flex items-center justify-center bg-white px-4 overflow-hidden">
-
       <div className="max-w-xl w-full p-14 rounded-2xl bg-white border border-ink/5 shadow-xl">
 
         <div className="text-center mb-10">
@@ -126,33 +131,43 @@ export const LoginPage = () => {
 
             {/* EMAIL */}
             {step === 1 && (
-              <input
-                autoFocus
-                type="email"
-                value={form.email}
-                onChange={(e) => {
-                  setForm({
-                    ...form,
-                    email: e.target.value.trimStart(), // ✅ trim
-                  });
-                  setError("");
-                }}
-                className="w-full border-b border-ink/10 py-4 text-lg outline-none"
-              />
+              <div>
+                <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
+                  Email Address
+                </label>
+                <input
+                  autoFocus
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => {
+                    setForm({
+                      ...form,
+                      email: e.target.value.trimStart(),
+                    });
+                    setError("");
+                  }}
+                  className="w-full border-b border-ink/10 py-5 text-xl outline-none"
+                />
+              </div>
             )}
 
             {/* PASSWORD */}
             {step === 2 && (
-              <input
-                autoFocus
-                type="password"
-                value={form.password}
-                onChange={(e) => {
-                  setForm({ ...form, password: e.target.value });
-                  setError("");
-                }}
-                className="w-full border-b border-ink/10 py-4 text-lg outline-none"
-              />
+              <div>
+                <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
+                  Password
+                </label>
+                <input
+                  autoFocus
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => {
+                    setForm({ ...form, password: e.target.value });
+                    setError("");
+                  }}
+                  className="w-full border-b border-ink/10 py-5 text-xl outline-none"
+                />
+              </div>
             )}
           </div>
 
@@ -170,7 +185,7 @@ export const LoginPage = () => {
             <button
               type="button"
               onClick={handleNext}
-              disabled={loading} // ✅ block spam
+              disabled={loading}
               className="ml-auto px-10 py-3 bg-ink text-white text-xs uppercase tracking-[0.25em] rounded-full hover:bg-gold transition"
             >
               {loading
