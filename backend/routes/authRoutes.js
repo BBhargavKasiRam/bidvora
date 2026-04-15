@@ -4,11 +4,13 @@ const router = express.Router();
 const {
   register,
   login,
-  checkEmail,
+  checkLoginEmail,
+  checkRegisterEmail,
 } = require("../controllers/authController");
 
 router.post("/register", register);
 router.post("/login", login);
-router.post("/check-email", checkEmail); // 🔥 IMPORTANT
+router.post("/check-login-email", checkLoginEmail);
+router.post("/check-register-email", checkRegisterEmail);
 
 module.exports = router;

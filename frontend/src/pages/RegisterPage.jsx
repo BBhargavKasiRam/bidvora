@@ -19,36 +19,27 @@ export const RegisterPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const emailRegex =
-    /^(?!.*\.\.)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+  const emailRegex = /^(?!.*\.\.)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
   const validateStep = () => {
     if (step === 1) {
       if (!form.name.trim()) return "Name is required";
-      if (form.name.trim().length < 3)
-        return "Minimum 3 characters required";
+      if (form.name.trim().length < 3) return "Minimum 3 characters required";
     }
-
     if (step === 2) {
       const email = form.email.trim();
       if (!email) return "Email is required";
-      if (!emailRegex.test(email))
-        return "Enter valid email";
+      if (!emailRegex.test(email)) return "Enter valid email";
     }
-
     if (step === 3) {
       if (!form.password) return "Password is required";
       if (!passwordRegex.test(form.password))
-        return "Weak password";
-      if (!form.confirmPassword)
-        return "Confirm your password";
-      if (form.password !== form.confirmPassword)
-        return "Passwords do not match";
+  return "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character";
+   
+      if (!form.confirmPassword) return "Confirm your password";
+      if (form.password !== form.confirmPassword) return "Passwords do not match";
     }
-
     return null;
   };
 
@@ -57,7 +48,7 @@ export const RegisterPage = () => {
 
     const err = validateStep();
     if (err) {
-      setError(err + " ");
+      setError(err);
       return;
     }
 
@@ -68,10 +59,12 @@ export const RegisterPage = () => {
       try {
         setLoading(true);
 
-        await api.post("/auth/check-email", {
+        // Check the email against your backend
+        await api.post("/auth/check-register-email", {
           email: form.email.trim().toLowerCase(),
         });
 
+        // If email is NOT registered, backend returns 200 OK
         setAnimating(true);
         setTimeout(() => {
           setStep(3);
@@ -79,18 +72,17 @@ export const RegisterPage = () => {
         }, 200);
 
       } catch (err) {
-        let msg = "Email already registered";
+        console.error("API ERROR:", err.response); // Open browser console (F12) to see details
 
-        // 🔥 SAFE ERROR HANDLING (fixes JSON crash)
-        if (err && err.message && !err.message.includes("JSON")) {
-          msg = err.message;
-        }
-
+        // 1. Get message from backend controller (e.g., "Email already registered")
+        // 2. Fall back to Axios error message
+        // 3. Last fallback
+        const msg = err.response?.data?.message || err.message || "Something went wrong";
+        
         setError(msg);
       } finally {
         setLoading(false);
       }
-
       return;
     }
 
@@ -107,23 +99,15 @@ export const RegisterPage = () => {
     // FINAL REGISTER
     try {
       setLoading(true);
-
       await api.post("/auth/register", {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
         role: form.role,
       });
-
       navigate("/login");
-
     } catch (err) {
-      let msg = "Something went wrong";
-
-      if (err && err.message && !err.message.includes("JSON")) {
-        msg = err.message;
-      }
-
+      const msg = err.response?.data?.message || "Registration failed";
       setError(msg);
     } finally {
       setLoading(false);
@@ -132,10 +116,8 @@ export const RegisterPage = () => {
 
   const handleBack = () => {
     if (loading) return;
-
     setError("");
     setAnimating(true);
-
     setTimeout(() => {
       setStep((prev) => prev - 1);
       setAnimating(false);
@@ -145,7 +127,6 @@ export const RegisterPage = () => {
   return (
     <div className="h-[calc(100vh-80px)] bg-white flex items-center justify-center px-4 overflow-hidden">
       <div className="max-w-xl w-full p-14 rounded-2xl bg-white border border-ink/5 shadow-xl">
-
         <div className="mb-10 text-center">
           <h2 className="text-4xl font-serif">Join Bidvora</h2>
         </div>
@@ -158,72 +139,46 @@ export const RegisterPage = () => {
         )}
 
         <form className="space-y-10">
-          <div className={`transition-all duration-200 ${
-            animating ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0"
-          }`}>
-
+          <div className={`transition-all duration-200 ${animating ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0"}`}>
             {step === 1 && (
               <div>
-                <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
-                  Full Name
-                </label>
+                <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Full Name</label>
                 <input
                   autoFocus
                   value={form.name}
-                  onChange={(e) => {
-                    setForm({ ...form, name: e.target.value.trimStart() });
-                    setError("");
-                  }}
+                  onChange={(e) => { setForm({ ...form, name: e.target.value.trimStart() }); setError(""); }}
                   className="w-full border-b border-ink/10 py-5 text-xl outline-none"
                 />
               </div>
             )}
-
             {step === 2 && (
               <div>
-                <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
-                  Email Address
-                </label>
+                <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Email Address</label>
                 <input
                   autoFocus
                   value={form.email}
-                  onChange={(e) => {
-                    setForm({ ...form, email: e.target.value.trimStart() });
-                    setError("");
-                  }}
+                  onChange={(e) => { setForm({ ...form, email: e.target.value.trimStart() }); setError(""); }}
                   className="w-full border-b border-ink/10 py-5 text-xl outline-none"
                 />
               </div>
             )}
-
             {step === 3 && (
               <>
                 <div>
-                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
-                    Password
-                  </label>
+                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Password</label>
                   <input
                     type="password"
                     value={form.password}
-                    onChange={(e) => {
-                      setForm({ ...form, password: e.target.value });
-                      setError("");
-                    }}
+                    onChange={(e) => { setForm({ ...form, password: e.target.value }); setError(""); }}
                     className="w-full border-b border-ink/10 py-5 text-xl outline-none"
                   />
                 </div>
-
                 <div>
-                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
-                    Confirm Password
-                  </label>
+                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Confirm Password</label>
                   <input
                     type="password"
                     value={form.confirmPassword}
-                    onChange={(e) => {
-                      setForm({ ...form, confirmPassword: e.target.value });
-                      setError("");
-                    }}
+                    onChange={(e) => { setForm({ ...form, confirmPassword: e.target.value }); setError(""); }}
                     className="w-full border-b border-ink/10 py-5 text-xl outline-none"
                   />
                 </div>
@@ -233,15 +188,8 @@ export const RegisterPage = () => {
 
           <div className="flex justify-between items-center">
             {step > 1 && (
-              <button
-                type="button"
-                onClick={handleBack}
-                className="text-xs uppercase tracking-widest text-ink/60"
-              >
-                Back
-              </button>
+              <button type="button" onClick={handleBack} className="text-xs uppercase tracking-widest text-ink/60">Back</button>
             )}
-
             <button
               type="button"
               onClick={handleNext}

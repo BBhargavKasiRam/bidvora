@@ -48,17 +48,38 @@ export const LoginPage = () => {
 
     setError("");
 
-    // STEP 1 → go to password
+    // 🔥 STEP 1 → CHECK EMAIL FIRST
     if (step === 1) {
-      setAnimating(true);
-      setTimeout(() => {
-        setStep(2);
-        setAnimating(false);
-      }, 200);
+      try {
+        setLoading(true);
+
+        await api.post("/auth/check-login-email", {
+          email: form.email.trim().toLowerCase(),
+        });
+
+        // ✅ ONLY IF EMAIL EXISTS → GO TO PASSWORD
+        setAnimating(true);
+        setTimeout(() => {
+          setStep(2);
+          setAnimating(false);
+        }, 200);
+
+      } catch (err) {
+        let msg = "Email not registered";
+
+        if (err && err.message && !err.message.includes("JSON")) {
+          msg = err.message;
+        }
+
+        setError(msg + " "); // ❌ stay on email
+      } finally {
+        setLoading(false);
+      }
+
       return;
     }
 
-    // STEP 2 → LOGIN
+    // 🔥 STEP 2 → LOGIN
     try {
       setLoading(true);
 
@@ -71,18 +92,20 @@ export const LoginPage = () => {
       navigate("/");
 
     } catch (err) {
-      let msg = "Invalid credentials";
+      let msg = "Login failed";
 
-      // 🔥 FULL SAFE ERROR HANDLING
       if (err && err.message && !err.message.includes("JSON")) {
         msg = err.message;
       }
 
       setError(msg + " ");
 
-      // 🔥 optional: go back to email step for retry
-      setStep(1);
-
+      // 🔥 KEEP USER ON CORRECT STEP
+      if (msg.toLowerCase().includes("email")) {
+        setStep(1);
+      } else if (msg.toLowerCase().includes("password")) {
+        setStep(2);
+      }
     } finally {
       setLoading(false);
     }
@@ -116,18 +139,11 @@ export const LoginPage = () => {
           </div>
         )}
 
-        <form
-          onSubmit={(e) => e.preventDefault()}
-          className="space-y-10"
-        >
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-10">
 
-          <div
-            className={`transition-all duration-200 ${
-              animating
-                ? "opacity-0 translate-x-4"
-                : "opacity-100 translate-x-0"
-            }`}
-          >
+          <div className={`transition-all duration-200 ${
+            animating ? "opacity-0 translate-x-4" : "opacity-100"
+          }`}>
 
             {/* EMAIL */}
             {step === 1 && (
