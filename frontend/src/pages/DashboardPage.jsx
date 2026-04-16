@@ -25,7 +25,6 @@ export const DashboardPage = () => {
       try {
         const auctions = await api.get("/auctions");
         setRecentAuctions(auctions.slice(0, 3));
-        // Mock stats for now
         setStats({
           active: auctions.length,
           won: 2,
@@ -89,13 +88,16 @@ export const DashboardPage = () => {
 
       {/* Quick Navigation */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-20">
-        <Link to="/" className="lg:col-span-2 bg-ink p-10 text-paper flex flex-col justify-between group hover:bg-gold transition-colors">
+        
+        {/* ✅ CHANGED HERE */}
+        <Link to="/gallery" className="lg:col-span-2 bg-ink p-10 text-paper flex flex-col justify-between group hover:bg-gold transition-colors">
           <h3 className="text-3xl font-serif mb-8">Explore the Gallery</h3>
           <div className="flex justify-between items-center">
             <span className="text-[10px] uppercase tracking-[0.3em] font-bold">View All Auctions</span>
             <ChevronRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
           </div>
         </Link>
+
         <Link to="/orders" className="bg-white p-10 border border-ink/5 flex flex-col justify-between group hover:border-gold transition-colors">
           <h3 className="text-2xl font-serif mb-8">My Orders</h3>
           <div className="flex justify-between items-center">
@@ -103,6 +105,7 @@ export const DashboardPage = () => {
             <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
           </div>
         </Link>
+
         <Link to="/profile" className="bg-white p-10 border border-ink/5 flex flex-col justify-between group hover:border-gold transition-colors">
           <h3 className="text-2xl font-serif mb-8">Account</h3>
           <div className="flex justify-between items-center">
@@ -116,8 +119,13 @@ export const DashboardPage = () => {
       <section>
         <div className="flex justify-between items-end mb-10">
           <h2 className="text-4xl font-serif">Featured Acquisitions</h2>
-          <Link to="/" className="text-[10px] uppercase tracking-widest font-bold text-gold hover:text-ink transition-colors">View All Gallery</Link>
+
+          {/* ✅ CHANGED HERE */}
+          <Link to="/gallery" className="text-[10px] uppercase tracking-widest font-bold text-gold hover:text-ink transition-colors">
+            View All Gallery
+          </Link>
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {recentAuctions.map(auction => (
             <AuctionCard key={auction.id} auction={auction} />
