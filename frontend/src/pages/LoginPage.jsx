@@ -88,6 +88,9 @@ export const LoginPage = () => {
         password: form.password,
       });
 
+      // ✅ ONLY ADD THIS LINE
+      localStorage.setItem("token", res.token);
+
       login(res.token, res.user);
       navigate("/");
 

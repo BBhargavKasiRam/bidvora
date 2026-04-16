@@ -1,3 +1,5 @@
+
+
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -81,9 +83,12 @@ exports.login = (req, res) => {
       });
     }
 
+    // ✅ ADDED (ensure same secret everywhere)
+    const SECRET = process.env.JWT_SECRET || "secret";
+
     const token = jwt.sign(
       { id: user.id },
-      process.env.JWT_SECRET,
+      SECRET, // ✅ FIXED
       { expiresIn: "1d" }
     );
 
