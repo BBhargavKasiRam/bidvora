@@ -1,20 +1,27 @@
 const API_BASE = "http://localhost:5000/api";
 
 export const api = {
-  post: async (endpoint, data) => {
+  // Shared request handler for POST and PUT
+  request: async (method, endpoint, data) => {
     const token = localStorage.getItem("token");
+    const isFormData = data instanceof FormData;
+
+    const headers = {
+      Authorization: token ? `Bearer ${token}` : "",
+    };
+
+    // If it's NOT a file upload, we need the JSON header
+    if (!isFormData) {
+      headers["Content-Type"] = "application/json";
+    }
 
     const res = await fetch(`${API_BASE}${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token ? `Bearer ${token}` : "",
-      },
-      body: JSON.stringify(data),
+      method,
+      headers,
+      body: isFormData ? data : JSON.stringify(data),
     });
 
-    const text = await res.text(); // ✅ read raw response
-
+    const text = await res.text();
     let result;
     try {
       result = JSON.parse(text);
@@ -22,9 +29,8 @@ export const api = {
       throw new Error(text || "Server returned invalid response");
     }
 
-    // ✅ ADDED: better debug (optional but useful)
     if (!res.ok) {
-      console.error("API POST ERROR:", result); // 🔥 ADD
+      console.error(`API ${method} ERROR:`, result);
       throw new Error(result.message || result.error || "Something went wrong");
     }
 
@@ -33,28 +39,20 @@ export const api = {
 
   get: async (endpoint) => {
     const token = localStorage.getItem("token");
-
     const res = await fetch(`${API_BASE}${endpoint}`, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-      },
+      headers: { Authorization: token ? `Bearer ${token}` : "" },
     });
 
     const text = await res.text();
-
     let result;
     try {
       result = JSON.parse(text);
-    } catch {
-      throw new Error(text || "Server returned invalid response");
-    }
+    } catch { throw new Error(text); }
 
-    // ✅ ADDED: better debug (optional but useful)
-    if (!res.ok) {
-      console.error("API GET ERROR:", result); // 🔥 ADD
-      throw new Error(result.message || result.error || "Something went wrong");
-    }
-
+    if (!res.ok) throw new Error(result.message || "Failed to fetch");
     return result;
   },
+
+  post: (endpoint, data) => api.request("POST", endpoint, data),
+  put: (endpoint, data) => api.request("PUT", endpoint, data),
 };
