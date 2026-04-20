@@ -13,7 +13,7 @@ export const RegisterPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "buyer",
+    role: "buyer", // Default role
   });
 
   const [error, setError] = useState("");
@@ -35,10 +35,10 @@ export const RegisterPage = () => {
     if (step === 3) {
       if (!form.password) return "Password is required";
       if (!passwordRegex.test(form.password))
-  return "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character";
-   
+        return "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character";
       if (!form.confirmPassword) return "Confirm your password";
       if (form.password !== form.confirmPassword) return "Passwords do not match";
+      if (!form.role) return "Please select an account type";
     }
     return null;
   };
@@ -54,17 +54,13 @@ export const RegisterPage = () => {
 
     setError("");
 
-    // 🔥 STEP 2 EMAIL CHECK
     if (step === 2) {
       try {
         setLoading(true);
-
-        // Check the email against your backend
         await api.post("/auth/check-register-email", {
           email: form.email.trim().toLowerCase(),
         });
 
-        // If email is NOT registered, backend returns 200 OK
         setAnimating(true);
         setTimeout(() => {
           setStep(3);
@@ -72,13 +68,7 @@ export const RegisterPage = () => {
         }, 200);
 
       } catch (err) {
-        console.error("API ERROR:", err.response); // Open browser console (F12) to see details
-
-        // 1. Get message from backend controller (e.g., "Email already registered")
-        // 2. Fall back to Axios error message
-        // 3. Last fallback
         const msg = err.response?.data?.message || err.message || "Something went wrong";
-        
         setError(msg);
       } finally {
         setLoading(false);
@@ -86,7 +76,6 @@ export const RegisterPage = () => {
       return;
     }
 
-    // NORMAL STEP FLOW
     if (step < 3) {
       setAnimating(true);
       setTimeout(() => {
@@ -96,7 +85,6 @@ export const RegisterPage = () => {
       return;
     }
 
-    // FINAL REGISTER
     try {
       setLoading(true);
       await api.post("/auth/register", {
@@ -163,14 +151,14 @@ export const RegisterPage = () => {
               </div>
             )}
             {step === 3 && (
-              <>
+              <div className="space-y-8">
                 <div>
                   <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Password</label>
                   <input
                     type="password"
                     value={form.password}
                     onChange={(e) => { setForm({ ...form, password: e.target.value }); setError(""); }}
-                    className="w-full border-b border-ink/10 py-5 text-xl outline-none"
+                    className="w-full border-b border-ink/10 py-4 text-xl outline-none"
                   />
                 </div>
                 <div>
@@ -179,10 +167,39 @@ export const RegisterPage = () => {
                     type="password"
                     value={form.confirmPassword}
                     onChange={(e) => { setForm({ ...form, confirmPassword: e.target.value }); setError(""); }}
-                    className="w-full border-b border-ink/10 py-5 text-xl outline-none"
+                    className="w-full border-b border-ink/10 py-4 text-xl outline-none"
                   />
                 </div>
-              </>
+
+                {/* ROLE SELECTION ADDED HERE */}
+                <div>
+                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-3 font-bold">I want to...</label>
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, role: "buyer" })}
+                      className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-bold border transition-all duration-300 ${
+                        form.role === "buyer" 
+                        ? "bg-ink text-white border-ink" 
+                        : "bg-white text-ink/40 border-ink/10 hover:border-ink/30"
+                      }`}
+                    >
+                      Buy Items
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, role: "seller" })}
+                      className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-bold border transition-all duration-300 ${
+                        form.role === "seller" 
+                        ? "bg-ink text-white border-ink" 
+                        : "bg-white text-ink/40 border-ink/10 hover:border-ink/30"
+                      }`}
+                    >
+                      Sell Items
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
