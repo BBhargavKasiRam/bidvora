@@ -26,14 +26,24 @@ export default function App() {
           <AnimatePresence mode="wait">
             <Routes>
               <Route path="/" element={isAuthenticated ? <DashboardPage /> : <LandingPage />} />
+<<<<<<< gallery
+=======
+
+              {/* ✅ ADDED THIS ROUTE */}
+              <Route path="/gallery" element={<HomePage />} />
+
+>>>>>>> main
               <Route path="/browse" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/create" element={<CreateAuctionPage />} />
               <Route path="/auction/:id" element={<AuctionDetailPage />} />
+<<<<<<< gallery
 
               
 
+=======
+>>>>>>> main
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/orders" element={<OrdersPage />} />
             </Routes>
@@ -46,9 +56,13 @@ export default function App() {
               <div className="col-span-1 md:col-span-1">
                 <div className="flex items-center gap-3 mb-6">
                   <Gavel className="w-8 h-8 text-gold" />
+<<<<<<< gallery
                   <span className="text-2xl font-serif font-bold tracking-tight">
                     BIDVORA
                   </span>
+=======
+                  <span className="text-2xl font-serif font-bold tracking-tight">BIDVORA</span>
+>>>>>>> main
                 </div>
                 <p className="text-sm text-ink/50 font-light leading-relaxed max-w-xs">
                   The world's most exclusive marketplace for rare acquisitions and timeless treasures. Curated for the discerning collector.
@@ -57,9 +71,13 @@ export default function App() {
 
               <div className="grid grid-cols-2 gap-8 col-span-1 md:col-span-2">
                 <div>
+<<<<<<< gallery
                   <h4 className="text-[10px] uppercase tracking-[0.3em] font-bold mb-6 text-ink/40">
                     Marketplace
                   </h4>
+=======
+                  <h4 className="text-[10px] uppercase tracking-[0.3em] font-bold mb-6 text-ink/40">Marketplace</h4>
+>>>>>>> main
                   <ul className="space-y-4 text-xs uppercase tracking-widest font-medium text-ink/60">
                     <li><a href="#" className="hover:text-gold transition-colors">Browse All</a></li>
                     <li><a href="#" className="hover:text-gold transition-colors">Recent Sales</a></li>
@@ -68,9 +86,13 @@ export default function App() {
                 </div>
 
                 <div>
+<<<<<<< gallery
                   <h4 className="text-[10px] uppercase tracking-[0.3em] font-bold mb-6 text-ink/40">
                     Company
                   </h4>
+=======
+                  <h4 className="text-[10px] uppercase tracking-[0.3em] font-bold mb-6 text-ink/40">Company</h4>
+>>>>>>> main
                   <ul className="space-y-4 text-xs uppercase tracking-widest font-medium text-ink/60">
                     <li><a href="#" className="hover:text-gold transition-colors">About</a></li>
                     <li><a href="#" className="hover:text-gold transition-colors">Privacy</a></li>
@@ -81,9 +103,13 @@ export default function App() {
             </div>
 
             <div className="pt-12 border-t border-ink/5 flex flex-col md:flex-row justify-between items-center gap-6">
+<<<<<<< gallery
               <p className="text-[9px] uppercase tracking-[0.4em] text-ink/30">
                 © 2026 Bidvora International. All Rights Reserved.
               </p>
+=======
+              <p className="text-[9px] uppercase tracking-[0.4em] text-ink/30">© 2026 Bidvora International. All Rights Reserved.</p>
+>>>>>>> main
               <div className="flex gap-10">
                 <span className="text-[9px] uppercase tracking-[0.4em] text-ink/30">London</span>
                 <span className="text-[9px] uppercase tracking-[0.4em] text-ink/30">New York</span>
