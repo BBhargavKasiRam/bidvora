@@ -1,10 +1,35 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "motion/react";
-import { User, Mail, Shield, Calendar, Settings } from "lucide-react";
+import { User, Mail, Shield, Settings } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export const ProfilePage = () => {
   const { user } = useAuth();
+
+  // ✅ Default State for preferences
+  const [preferences, setPreferences] = useState({
+    emailNotifications: true,
+    twoFactorAuth: false,
+    publicProfile: true,
+  });
+
+  // ✅ Toggle handler
+  const togglePreference = (key) => {
+    setPreferences((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  // ✅ Update button handler
+  const handleUpdatePreferences = () => {
+    console.log("Updated Preferences:", preferences);
+
+    // 🔥 Replace this with API call
+    // axios.post("/api/user/preferences", preferences)
+
+    alert("Preferences updated successfully!");
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-8 py-20">
@@ -65,25 +90,60 @@ export const ProfilePage = () => {
           <h3 className="text-2xl font-serif mb-10">Preferences</h3>
           <div className="space-y-8 relative z-10">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-light">Email Notifications</span>
-              <div className="w-12 h-6 bg-gold rounded-full relative">
-                <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
+              <span>Email Notifications</span>
+              <div
+                onClick={() => togglePreference("emailNotifications")}
+                className={`w-12 h-6 rounded-full relative cursor-pointer ${
+                  preferences.emailNotifications ? "bg-gold" : "bg-ink/10"
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
+                    preferences.emailNotifications ? "right-1" : "left-1"
+                  }`}
+                />
               </div>
             </div>
+
+            {/* 2FA */}
             <div className="flex justify-between items-center">
-              <span className="text-sm font-light">Two-Factor Auth</span>
-              <div className="w-12 h-6 bg-ink/10 rounded-full relative">
-                <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full" />
+              <span>Two-Factor Auth</span>
+              <div
+                onClick={() => togglePreference("twoFactorAuth")}
+                className={`w-12 h-6 rounded-full relative cursor-pointer ${
+                  preferences.twoFactorAuth ? "bg-gold" : "bg-ink/10"
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
+                    preferences.twoFactorAuth ? "right-1" : "left-1"
+                  }`}
+                />
               </div>
             </div>
+
+            {/* PUBLIC PROFILE */}
             <div className="flex justify-between items-center">
-              <span className="text-sm font-light">Public Profile</span>
-              <div className="w-12 h-6 bg-gold rounded-full relative">
-                <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
+              <span>Public Profile</span>
+              <div
+                onClick={() => togglePreference("publicProfile")}
+                className={`w-12 h-6 rounded-full relative cursor-pointer ${
+                  preferences.publicProfile ? "bg-gold" : "bg-ink/10"
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
+                    preferences.publicProfile ? "right-1" : "left-1"
+                  }`}
+                />
               </div>
             </div>
-            
-            <button className="w-full py-4 border border-ink/10 text-[10px] uppercase tracking-widest font-bold hover:bg-ink hover:text-paper transition-all mt-8">
+
+            {/* BUTTON */}
+            <button
+              onClick={handleUpdatePreferences}
+              className="w-full py-4 border border-ink/10 text-[10px] uppercase tracking-widest font-bold hover:bg-ink hover:text-paper transition-all mt-8"
+            >
               Update Preferences
             </button>
           </div>

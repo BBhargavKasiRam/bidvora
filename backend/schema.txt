@@ -1,0 +1,67 @@
+-- Create Database
+DROP DATABASE IF EXISTS bidvora;
+CREATE DATABASE bidvora;
+USE bidvora;
+
+-- USERS
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  role ENUM('buyer','seller') NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- AUCTIONS
+CREATE TABLE auctions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  seller_id INT NOT NULL,
+  title VARCHAR(255),
+  description TEXT,
+  starting_price DECIMAL(10,2),
+  current_price DECIMAL(10,2),
+  end_time DATETIME,
+  status ENUM('active','ended') DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (seller_id) REFERENCES users(id)
+);
+
+-- BIDS
+CREATE TABLE bids (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  auction_id INT NOT NULL,
+  user_id INT NOT NULL,
+  amount DECIMAL(10,2),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (auction_id) REFERENCES auctions(id),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- TRANSACTIONS
+CREATE TABLE transactions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  auction_id INT,
+  winner_id INT,
+  final_price DECIMAL(10,2),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (auction_id) REFERENCES auctions(id),
+  FOREIGN KEY (winner_id) REFERENCES users(id)
+);
+
+-- WATCHLIST
+CREATE TABLE watchlist (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT,
+  auction_id INT,
+  FOREIGN KEY (user_id) REFERENCES users(id),
+  FOREIGN KEY (auction_id) REFERENCES auctions(id)
+);
+
+-- MEDIA
+CREATE TABLE media (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  auction_id INT,
+  media_url TEXT,
+  FOREIGN KEY (auction_id) REFERENCES auctions(id)
+);
