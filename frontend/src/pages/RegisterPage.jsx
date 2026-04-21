@@ -13,7 +13,7 @@ export const RegisterPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "buyer",
+    role: "buyer", // Default is buyer, buttons will change this
   });
 
   const [error, setError] = useState("");
@@ -54,17 +54,13 @@ export const RegisterPage = () => {
 
     setError("");
 
-    // 🔥 STEP 2 API CALL FIX
     if (step === 2) {
       try {
         setLoading(true);
-
         console.log("Sending email to backend:", form.email);
-
         const response = await api.post("/auth/check-register-email", {
           email: form.email.trim().toLowerCase(),
         });
-
         console.log("Backend response:", response.data);
 
         setAnimating(true);
@@ -75,12 +71,7 @@ export const RegisterPage = () => {
 
       } catch (err) {
         console.error("Email check error:", err);
-
-        const msg =
-          err.response?.data?.message ||
-          err.message ||
-          "Server error. Check backend.";
-
+        const msg = err.response?.data?.message || err.message || "Server error. Check backend.";
         setError(msg);
       } finally {
         setLoading(false);
@@ -97,28 +88,19 @@ export const RegisterPage = () => {
       return;
     }
 
-    // 🔥 REGISTER API
     try {
       setLoading(true);
-
       console.log("Registering user:", form);
-
       await api.post("/auth/register", {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
         role: form.role,
       });
-
       navigate("/login");
-
     } catch (err) {
       console.error("Register error:", err);
-
-      const msg =
-        err.response?.data?.message ||
-        "Registration failed";
-
+      const msg = err.response?.data?.message || "Registration failed";
       setError(msg);
     } finally {
       setLoading(false);
@@ -208,6 +190,32 @@ export const RegisterPage = () => {
                     className="w-full border-b border-ink/10 py-4 text-xl outline-none"
                   />
                 </div>
+
+                {/* --- ADDED ROLE SELECTION BUTTONS --- */}
+                <div>
+                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-4 font-bold">I want to...</label>
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, role: "buyer" })}
+                      className={`flex-1 py-3 text-[10px] uppercase tracking-[0.2em] font-bold border rounded-full transition-all ${
+                        form.role === "buyer" ? "bg-ink text-white border-ink" : "text-ink/40 border-ink/10 hover:border-ink/30"
+                      }`}
+                    >
+                      Buy Items
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, role: "seller" })}
+                      className={`flex-1 py-3 text-[10px] uppercase tracking-[0.2em] font-bold border rounded-full transition-all ${
+                        form.role === "seller" ? "bg-ink text-white border-ink" : "text-ink/40 border-ink/10 hover:border-ink/30"
+                      }`}
+                    >
+                      Sell Items
+                    </button>
+                  </div>
+                </div>
+                {/* ------------------------------------ */}
               </div>
             )}
           </div>
