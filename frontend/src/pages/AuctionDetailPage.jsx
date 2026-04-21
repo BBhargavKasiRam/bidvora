@@ -22,26 +22,28 @@ export const AuctionDetailPage = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const fetchAuction = async () => {
-    try {
-      const data = await api.get(`/auctions/${id}`);
-      setAuction(data);
-      setEditForm({ 
-        title: data.title, 
-        description: data.description, 
-        current_price: data.current_price 
-      });
-      
-      if (data.image) {
-        const fullImageUrl = data.image.startsWith('http') 
-          ? data.image 
-          : `http://localhost:5000/uploads/${data.image}`;
-        setImagePreview(fullImageUrl);
-      }
-    } catch (err) {
-      navigate("/");
+const fetchAuction = async () => {
+  try {
+    const data = await api.get(`/auctions/${id}`);
+    setAuction(data);
+
+    setEditForm({ 
+      title: data.title, 
+      description: data.description, 
+      current_price: data.current_price 
+    });
+
+    // ✅ FIXED: Directly use Cloudinary URL
+    if (data.image) {
+      setImagePreview(data.image);
+    } else {
+      setImagePreview(null);
     }
-  };
+
+  } catch (err) {
+    navigate("/");
+  }
+};
 
   useEffect(() => {
     fetchAuction();
