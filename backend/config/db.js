@@ -2,22 +2,22 @@ require("dotenv").config();
 const mysql = require("mysql2");
 
 const db = mysql.createPool({
-  host: process.env.DB_HOST || "localhost",
-  user: process.env.DB_USER || "root",
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
   password: process.env.DB_PASS,
-  database: process.env.DB_NAME || "bidvora",
+  database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
 });
 
-// Test connection
+// ✅ Debug DB connection
 db.getConnection((err, connection) => {
   if (err) {
     console.error("DB Connection failed:", err);
     return;
   }
-  console.log("DB Connected");
+  console.log("Connected to DB:", process.env.DB_NAME);
   connection.release();
 });
 
