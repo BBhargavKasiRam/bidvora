@@ -65,3 +65,5 @@ CREATE TABLE media (
   media_url TEXT,
   FOREIGN KEY (auction_id) REFERENCES auctions(id)
 );
+
+ALTER TABLE auctions ADD image TEXT;

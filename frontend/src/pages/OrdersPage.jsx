@@ -72,7 +72,7 @@ export const OrdersPage = () => {
               />
             </div>
             
-            <div className="flex-grow flex flex-col justify-between py-2">
+            <div className="grow flex flex-col justify-between py-2">
               <div>
                 <div className="flex justify-between items-start mb-6">
                   <div>
