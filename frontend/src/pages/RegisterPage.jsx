@@ -13,7 +13,7 @@ export const RegisterPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "buyer", // Default role
+    role: "buyer",
   });
 
   const [error, setError] = useState("");
@@ -54,12 +54,18 @@ export const RegisterPage = () => {
 
     setError("");
 
+    // 🔥 STEP 2 API CALL FIX
     if (step === 2) {
       try {
         setLoading(true);
-        await api.post("/auth/check-register-email", {
+
+        console.log("Sending email to backend:", form.email);
+
+        const response = await api.post("/auth/check-register-email", {
           email: form.email.trim().toLowerCase(),
         });
+
+        console.log("Backend response:", response.data);
 
         setAnimating(true);
         setTimeout(() => {
@@ -68,7 +74,13 @@ export const RegisterPage = () => {
         }, 200);
 
       } catch (err) {
-        const msg = err.response?.data?.message || err.message || "Something went wrong";
+        console.error("Email check error:", err);
+
+        const msg =
+          err.response?.data?.message ||
+          err.message ||
+          "Server error. Check backend.";
+
         setError(msg);
       } finally {
         setLoading(false);
@@ -85,17 +97,28 @@ export const RegisterPage = () => {
       return;
     }
 
+    // 🔥 REGISTER API
     try {
       setLoading(true);
+
+      console.log("Registering user:", form);
+
       await api.post("/auth/register", {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         password: form.password,
         role: form.role,
       });
+
       navigate("/login");
+
     } catch (err) {
-      const msg = err.response?.data?.message || "Registration failed";
+      console.error("Register error:", err);
+
+      const msg =
+        err.response?.data?.message ||
+        "Registration failed";
+
       setError(msg);
     } finally {
       setLoading(false);
@@ -134,22 +157,30 @@ export const RegisterPage = () => {
                 <input
                   autoFocus
                   value={form.name}
-                  onChange={(e) => { setForm({ ...form, name: e.target.value.trimStart() }); setError(""); }}
+                  onChange={(e) => {
+                    setForm({ ...form, name: e.target.value.trimStart() });
+                    setError("");
+                  }}
                   className="w-full border-b border-ink/10 py-5 text-xl outline-none"
                 />
               </div>
             )}
+
             {step === 2 && (
               <div>
                 <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Email Address</label>
                 <input
                   autoFocus
                   value={form.email}
-                  onChange={(e) => { setForm({ ...form, email: e.target.value.trimStart() }); setError(""); }}
+                  onChange={(e) => {
+                    setForm({ ...form, email: e.target.value.trimStart() });
+                    setError("");
+                  }}
                   className="w-full border-b border-ink/10 py-5 text-xl outline-none"
                 />
               </div>
             )}
+
             {step === 3 && (
               <div className="space-y-8">
                 <div>
@@ -157,47 +188,25 @@ export const RegisterPage = () => {
                   <input
                     type="password"
                     value={form.password}
-                    onChange={(e) => { setForm({ ...form, password: e.target.value }); setError(""); }}
+                    onChange={(e) => {
+                      setForm({ ...form, password: e.target.value });
+                      setError("");
+                    }}
                     className="w-full border-b border-ink/10 py-4 text-xl outline-none"
                   />
                 </div>
+
                 <div>
                   <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Confirm Password</label>
                   <input
                     type="password"
                     value={form.confirmPassword}
-                    onChange={(e) => { setForm({ ...form, confirmPassword: e.target.value }); setError(""); }}
+                    onChange={(e) => {
+                      setForm({ ...form, confirmPassword: e.target.value });
+                      setError("");
+                    }}
                     className="w-full border-b border-ink/10 py-4 text-xl outline-none"
                   />
-                </div>
-
-                {/* ROLE SELECTION ADDED HERE */}
-                <div>
-                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-3 font-bold">I want to...</label>
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, role: "buyer" })}
-                      className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-bold border transition-all duration-300 ${
-                        form.role === "buyer" 
-                        ? "bg-ink text-white border-ink" 
-                        : "bg-white text-ink/40 border-ink/10 hover:border-ink/30"
-                      }`}
-                    >
-                      Buy Items
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, role: "seller" })}
-                      className={`flex-1 py-3 text-[10px] uppercase tracking-widest font-bold border transition-all duration-300 ${
-                        form.role === "seller" 
-                        ? "bg-ink text-white border-ink" 
-                        : "bg-white text-ink/40 border-ink/10 hover:border-ink/30"
-                      }`}
-                    >
-                      Sell Items
-                    </button>
-                  </div>
                 </div>
               </div>
             )}
@@ -205,8 +214,11 @@ export const RegisterPage = () => {
 
           <div className="flex justify-between items-center">
             {step > 1 && (
-              <button type="button" onClick={handleBack} className="text-xs uppercase tracking-widest text-ink/60">Back</button>
+              <button type="button" onClick={handleBack} className="text-xs uppercase tracking-widest text-ink/60">
+                Back
+              </button>
             )}
+
             <button
               type="button"
               onClick={handleNext}

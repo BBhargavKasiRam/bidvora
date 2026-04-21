@@ -69,15 +69,53 @@ exports.login = (req, res) => {
 
 // 🔥 CHECK REGISTER EMAIL
 exports.checkRegisterEmail = (req, res) => {
+  try {
+    console.log("Incoming body:", req.body); // 🔍 debug
+
+    let { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email required" });
+    }
+
+    email = email.trim().toLowerCase();
+
+    db.query(
+      "SELECT id FROM users WHERE email = ?",
+      [email],
+      (err, result) => {
+        if (err) {
+          console.error("DB ERROR:", err); // 🔥 VERY IMPORTANT
+          return res.status(500).json({ message: "Database error" });
+        }
+
+        if (result.length > 0) {
+          return res.status(400).json({ message: "Email already registered" });
+        }
+
+        return res.json({ message: "OK" });
+      }
+    );
+  } catch (error) {
+    console.error("SERVER ERROR:", error); // 🔥 VERY IMPORTANT
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// 🔥 CHECK LOGIN EMAIL
+exports.checkLoginEmail = (req, res) => {
   let { email } = req.body;
   if (!email) return res.status(400).json({ message: "Email required" });
+
   email = email.trim().toLowerCase().replace(/\s+/g, "");
 
   db.query("SELECT id FROM users WHERE email = ?", [email], (err, result) => {
     if (err) return res.status(500).json({ message: "Server error" });
-    if (result.length > 0) return res.status(400).json({ message: "Email already registered" });
+
+    if (result.length === 0) {
+      return res.status(400).json({ message: "Email not registered" });
+    }
+
     res.json({ message: "OK" });
   });
 };
-
-// (checkLoginEmail remains same)
