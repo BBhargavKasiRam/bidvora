@@ -11,18 +11,18 @@ const {
 
 const authMiddleware = require("../middleware/authMiddleware");
 
-// ✅ Memory storage
+// ✅ Multer memory storage
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Routes
+// ✅ Routes
 router.get("/", getAuctions);
 router.get("/:id", getAuctionById);
 
-// ✅ Create (with image REQUIRED)
+// 🔥 Create auction (image REQUIRED)
 router.post("/", authMiddleware, upload.single("image"), createAuction);
 
-// ✅ Update (image optional here)
+// 🔥 Update auction (image optional)
 router.put("/:id", authMiddleware, upload.single("image"), updateAuction);
 
 module.exports = router;
