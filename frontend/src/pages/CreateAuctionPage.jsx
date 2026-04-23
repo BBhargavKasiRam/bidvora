@@ -28,8 +28,14 @@ export const CreateAuctionPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // 🔥 TITLE VALIDATION (UPDATED)
+    const titleRegex = /^[A-Za-z ]+$/;
+
     if (!title.trim() || title.trim().length < 3)
       return setError("Title must be at least 3 characters");
+
+    if (!titleRegex.test(title.trim()))
+      return setError("Title must contain only alphabets (no numbers or special characters)");
 
     if (description.trim().length < 10)
       return setError("Description must be at least 10 characters");
@@ -40,7 +46,7 @@ export const CreateAuctionPage = () => {
     if (!durationHours || Number(durationHours) <= 0)
       return setError("Please specify a valid duration");
 
-    // 🔥 IMAGE MANDATORY (ADDED)
+    // 🔥 IMAGE MANDATORY
     if (!image) {
       return setError("Please upload an image");
     }
@@ -55,8 +61,6 @@ export const CreateAuctionPage = () => {
       formData.append("description", description.trim());
       formData.append("starting_price", startingPrice);
       formData.append("duration", durationSeconds);
-
-      // 🔥 NOW ALWAYS REQUIRED (CHANGED)
       formData.append("image", image);
 
       await api.post("/auctions", formData);
