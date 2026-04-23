@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, Upload, Camera, Clock, X, ChevronDown } from "lucide-react";
-import { api } from "../lib/api"; // ✅ IMPORTANT
+import { AlertCircle } from "lucide-react";
+import { api } from "../lib/api";
 
 export const CreateAuctionPage = () => {
   const [title, setTitle] = useState("");
@@ -28,8 +28,14 @@ export const CreateAuctionPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // 🔥 TITLE VALIDATION (UPDATED)
+    const titleRegex = /^[A-Za-z ]+$/;
+
     if (!title.trim() || title.trim().length < 3)
       return setError("Title must be at least 3 characters");
+
+    if (!titleRegex.test(title.trim()))
+      return setError("Title must contain only alphabets (no numbers or special characters)");
 
     if (description.trim().length < 10)
       return setError("Description must be at least 10 characters");
@@ -39,6 +45,11 @@ export const CreateAuctionPage = () => {
 
     if (!durationHours || Number(durationHours) <= 0)
       return setError("Please specify a valid duration");
+
+    // 🔥 IMAGE MANDATORY
+    if (!image) {
+      return setError("Please upload an image");
+    }
 
     try {
       setError("");
@@ -50,11 +61,9 @@ export const CreateAuctionPage = () => {
       formData.append("description", description.trim());
       formData.append("starting_price", startingPrice);
       formData.append("duration", durationSeconds);
+      formData.append("image", image);
 
-      // ✅ Works perfectly with Cloudinary backend
-      if (image) formData.append("image", image);
-
-      await api.post("/auctions", formData); // ✅ FIXED
+      await api.post("/auctions", formData);
 
       navigate("/");
     } catch (err) {
@@ -102,13 +111,21 @@ export const CreateAuctionPage = () => {
           />
 
           {/* IMAGE */}
-          <div onClick={() => fileInputRef.current.click()} className="border p-6 cursor-pointer">
+          <div
+            onClick={() => fileInputRef.current.click()}
+            className="border p-6 cursor-pointer"
+          >
             {preview ? (
               <img src={preview} className="w-full h-64 object-contain" />
             ) : (
               <p>Upload Image</p>
             )}
-            <input type="file" ref={fileInputRef} hidden onChange={handleImageChange} />
+            <input
+              type="file"
+              ref={fileInputRef}
+              hidden
+              onChange={handleImageChange}
+            />
           </div>
 
           {/* PRICE */}
@@ -132,6 +149,7 @@ export const CreateAuctionPage = () => {
           <button className="w-full bg-black text-white p-4">
             Create Auction
           </button>
+
         </form>
       </div>
     </div>
