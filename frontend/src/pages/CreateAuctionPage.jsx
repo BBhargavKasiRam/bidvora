@@ -9,6 +9,7 @@ export const CreateAuctionPage = () => {
   const [startingPrice, setStartingPrice] = useState("");
   const [durationHours, setDurationHours] = useState("");
 
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -27,6 +28,7 @@ export const CreateAuctionPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return; // Prevent duplicate clicks
 
     // 🔥 TITLE VALIDATION (UPDATED)
     const titleRegex = /^[A-Za-z ]+$/;
@@ -52,6 +54,7 @@ export const CreateAuctionPage = () => {
     }
 
     try {
+      setLoading(true);
       setError("");
 
       const durationSeconds = Math.floor(Number(durationHours) * 3600);
@@ -69,6 +72,8 @@ export const CreateAuctionPage = () => {
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || "Upload failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -146,8 +151,20 @@ export const CreateAuctionPage = () => {
             className="w-full border p-4"
           />
 
-          <button className="w-full bg-black text-white p-4">
-            Create Auction
+          <button
+            disabled={loading}
+            className={`w-full py-5 text-[10px] uppercase tracking-[0.4em] font-bold transition-all shadow-xl flex items-center justify-center gap-3 ${
+              loading ? "bg-ink/50 cursor-not-allowed" : "bg-ink text-paper hover:bg-gold"
+            }`}
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-paper border-t-transparent rounded-full animate-spin" />
+                Processing...
+              </>
+            ) : (
+              "Create Auction"
+            )}
           </button>
 
         </form>

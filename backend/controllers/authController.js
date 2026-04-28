@@ -119,3 +119,37 @@ exports.checkLoginEmail = (req, res) => {
     res.json({ message: "OK" });
   });
 };
+
+// 🔐 UPDATE PROFILE
+exports.updateProfile = (req, res) => {
+  const { name, email } = req.body;
+  const userId = req.user.id;
+
+  if (!name || !email) {
+    return res.status(400).json({ message: "Name and email are required" });
+  }
+
+  // Check if email is already taken by another user
+  db.query(
+    "SELECT id FROM users WHERE email = ? AND id != ?",
+    [email, userId],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+      if (result.length > 0) return res.status(400).json({ message: "Email already in use" });
+
+      db.query(
+        "UPDATE users SET name = ?, email = ? WHERE id = ?",
+        [name, email, userId],
+        (err) => {
+          if (err) return res.status(500).json({ message: "Server error" });
+          
+          // Fetch updated user
+          db.query("SELECT id, name, email, role FROM users WHERE id = ?", [userId], (err, results) => {
+             if (err) return res.status(500).json({ message: "Server error" });
+             res.json({ message: "Profile updated successfully", user: results[0] });
+          });
+        }
+      );
+    }
+  );
+};

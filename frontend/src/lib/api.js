@@ -10,16 +10,19 @@ export const api = {
       Authorization: token ? `Bearer ${token}` : "",
     };
 
-    // If it's NOT a file upload, we need the JSON header
-    if (!isFormData) {
-      headers["Content-Type"] = "application/json";
-    }
-
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    const options = {
       method,
       headers,
-      body: isFormData ? data : JSON.stringify(data),
-    });
+    };
+
+    if (data !== undefined) {
+      options.body = isFormData ? data : JSON.stringify(data);
+      if (!isFormData) {
+        headers["Content-Type"] = "application/json";
+      }
+    }
+
+    const res = await fetch(`${API_BASE}${endpoint}`, options);
 
     const text = await res.text();
     let result;
@@ -55,4 +58,5 @@ export const api = {
 
   post: (endpoint, data) => api.request("POST", endpoint, data),
   put: (endpoint, data) => api.request("PUT", endpoint, data),
+  delete: (endpoint) => api.request("DELETE", endpoint),
 };

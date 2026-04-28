@@ -23,15 +23,20 @@ router.get("/", authMiddleware, (req, res) => {
       b.created_at AS won_at
     FROM auctions a
     JOIN users u ON a.seller_id = u.id
-    JOIN bids b ON b.auction_id = a.id AND b.user_id = ? AND b.amount = a.current_price
-    WHERE a.end_time <= NOW()
+    JOIN bids b ON b.auction_id = a.id
+    WHERE b.user_id = ? 
+      AND b.amount = a.current_price
+      AND a.end_time <= CURRENT_TIMESTAMP
     ORDER BY b.created_at DESC
   `;
 
   db.query(sql, [userId], (err, results) => {
     if (err) {
       console.error("Orders fetch error:", err);
-      return res.status(500).json({ message: "Error fetching orders" });
+      return res.status(500).json({ 
+        message: "Error fetching orders",
+        error: err.message // Send error message for debugging
+      });
     }
     res.json(results);
   });

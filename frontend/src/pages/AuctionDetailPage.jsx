@@ -23,6 +23,8 @@ import {
   MicOff,
   Wifi,
   WifiOff,
+  Trash2,
+  ShoppingBag,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
@@ -198,7 +200,7 @@ const BidHistory = ({ bids }) => {
   );
 };
 
-// ─── WebRTC Video Component ───────────────────────────────────────────────────
+// ─── WebRTC Video Component (FIXED FOR DEVICES) ───────────────────────────────
 const VideoStream = ({ auctionId, isSeller, sellerName }) => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -219,6 +221,7 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" },
     ],
   };
 
@@ -305,6 +308,8 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
         pc.ontrack = (e) => {
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = e.streams[0];
+            // Critical for mobile auto-play
+            remoteVideoRef.current.play().catch(err => console.error("Video play error:", err));
           }
           setConnectionState("connected");
         };
@@ -345,7 +350,7 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
   const startBroadcast = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: { facingMode: "user" },
         audio: true,
       });
       localStream.current = stream;
@@ -353,8 +358,7 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
         localVideoRef.current.srcObject = stream;
       }
       setIsBroadcasting(true);
-      const socket = getSocket();
-      socket.emit("start-broadcast", { auctionId });
+      getSocket().emit("start-broadcast", { auctionId });
     } catch (err) {
       console.error("Camera access error:", err);
       alert("Could not access camera/microphone: " + err.message);
@@ -370,16 +374,14 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
     peerConnections.current = {};
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     setIsBroadcasting(false);
-    const socket = getSocket();
-    socket.emit("broadcast-ended-notify", { auctionId });
+    getSocket().emit("broadcast-ended-notify", { auctionId });
   };
 
   const watchStream = () => {
     if (!broadcasterId) return;
     setIsWatching(true);
     setConnectionState("connecting");
-    const socket = getSocket();
-    socket.emit("viewer-ready", { auctionId, viewerId: socket.id });
+    getSocket().emit("viewer-ready", { auctionId, viewerId: getSocket().id });
   };
 
   const toggleMic = () => {
@@ -418,8 +420,8 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
               <video
                 ref={localVideoCallbackRef}
                 autoPlay
-                muted
-                playsInline
+                muted // Broadcaster must be muted to allow auto-play
+                playsInline // Critical for iOS
                 onClick={() => toggleFullscreen(localVideoRef)}
                 className="w-full h-full object-cover cursor-pointer"
               />
@@ -480,11 +482,6 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
             <Wifi className="w-3 h-3" /> Connected
           </span>
         )}
-        {isWatching && connectionState === "connecting" && (
-          <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest font-bold text-amber-500">
-            <WifiOff className="w-3 h-3 animate-pulse" /> Connecting...
-          </span>
-        )}
       </div>
 
       {broadcasterPresent || isWatching ? (
@@ -494,7 +491,7 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
               <video
                 ref={remoteVideoRef}
                 autoPlay
-                playsInline
+                playsInline // Critical for iOS
                 onClick={() => toggleFullscreen(remoteVideoRef)}
                 className="w-full h-full object-cover cursor-pointer"
               />
@@ -530,9 +527,6 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
         <div className="aspect-video bg-paper/50 border border-dashed border-ink/10 flex flex-col items-center justify-center gap-3">
           <VideoOff className="w-8 h-8 text-ink/20" />
           <p className="text-xs text-ink/30 uppercase tracking-widest font-bold">No live stream</p>
-          <p className="text-[9px] text-ink/20 text-center max-w-[160px]">
-            The seller may go live during the auction
-          </p>
         </div>
       )}
     </div>
@@ -563,13 +557,17 @@ export const AuctionDetailPage = () => {
   const [currentEndTime, setCurrentEndTime] = useState(null);
   const [antiSnipeData, setAntiSnipeData] = useState(null);
   const [liveBids, setLiveBids] = useState([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const fetchAuction = useCallback(async () => {
     try {
       const data = await api.get(`/auctions/${id}`);
       setAuction(data);
       setCurrentEndTime(data.end_time);
+      
+      // CRITICAL FIX: Ensure bid history is populated from initial load
       setLiveBids(data.bids || []);
+      
       setEditForm({
         title: data.title,
         description: data.description,
@@ -582,8 +580,6 @@ export const AuctionDetailPage = () => {
           ? data.image
           : `${baseURL}/${data.image}`;
         setImagePreview(fullUrl);
-      } else {
-        setImagePreview(null);
       }
     } catch {
       navigate("/");
@@ -642,6 +638,24 @@ export const AuctionDetailPage = () => {
     }
   };
 
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    setError("");
+    setSuccess("");
+    try {
+      await api.delete(`/auctions/${id}`);
+      setSuccess("Auction deleted successfully. Redirecting to gallery...");
+      // Auto redirect after a short delay
+      setTimeout(() => navigate("/gallery"), 2000);
+    } catch (err) {
+      setError(err.message || "Delete failed");
+    }
+  };
+
   const handleBid = async (e) => {
     e.preventDefault();
     setError("");
@@ -660,7 +674,7 @@ export const AuctionDetailPage = () => {
       });
       setSuccess(result.message || "Bid placed successfully!");
       setBidAmount("");
-      setTimeout(fetchAuction, 500);
+      // No need to wait for full fetch as socket handles live update
     } catch (err) {
       setError(err.message || "Bid failed");
     } finally {
@@ -706,6 +720,67 @@ export const AuctionDetailPage = () => {
               <button className="absolute top-10 right-10 text-paper hover:text-gold">
                 <X size={40} />
               </button>
+            </motion.div>
+          )}
+
+          {showDeleteConfirm && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[150] bg-ink/80 backdrop-blur-md flex items-center justify-center p-6"
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-white max-w-md w-full p-10 shadow-2xl border border-ink/5"
+              >
+                <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-8 mx-auto">
+                  <Trash2 size={32} />
+                </div>
+                <h2 className="text-3xl font-serif text-center mb-4">Remove Lot?</h2>
+                <p className="text-ink/60 text-center text-sm font-light leading-relaxed mb-10">
+                  This action is permanent. All bids and history associated with this lot will be permanently removed from the collection.
+                </p>
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={confirmDelete}
+                    className="w-full py-4 bg-red-600 text-white text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-red-700 transition-colors shadow-lg"
+                  >
+                    Confirm Deletion
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="w-full py-4 border border-ink/10 text-[10px] uppercase tracking-[0.3em] font-bold hover:bg-ink/5 transition-colors"
+                  >
+                    Keep Listing
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {success && success.includes("deleted") && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="fixed inset-0 z-[200] bg-gold flex flex-col items-center justify-center text-ink"
+            >
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-center"
+              >
+                <div className="w-24 h-24 bg-ink text-gold rounded-full flex items-center justify-center mb-8 mx-auto shadow-2xl">
+                  <CheckCircle2 size={48} />
+                </div>
+                <h2 className="text-5xl font-serif mb-4">Lot Removed</h2>
+                <p className="text-[10px] uppercase tracking-[0.5em] font-bold opacity-60">
+                  Redirecting to Gallery
+                </p>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -932,17 +1007,40 @@ export const AuctionDetailPage = () => {
                       </button>
                     </>
                   ) : (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="w-full py-4 border border-ink/10 text-[10px] uppercase tracking-[0.4em] hover:bg-ink hover:text-paper transition-all font-bold flex items-center justify-center gap-2"
-                    >
-                      <Edit3 size={13} /> Edit Listing
-                    </button>
+                    <>
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="w-full py-4 border border-ink/10 text-[10px] uppercase tracking-[0.4em] hover:bg-ink hover:text-paper transition-all font-bold flex items-center justify-center gap-2"
+                      >
+                        <Edit3 size={13} /> Edit Listing
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        className="w-full py-4 border border-red-100 text-[10px] uppercase tracking-[0.4em] hover:bg-red-500 hover:text-white transition-all font-bold flex items-center justify-center gap-2 text-red-500 mt-2"
+                      >
+                        <Trash2 size={13} /> Delete Auction
+                      </button>
+                    </>
                   )}
                 </div>
               ) : (
-                <div className="p-4 bg-ink/5 text-[9px] text-ink/40 uppercase tracking-[0.3em] font-bold text-center border border-dashed border-ink/10">
-                  Lot closed — modifications restricted
+                <div className="p-5 bg-ink/5 border border-dashed border-ink/10 text-center">
+                  <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-ink/40">
+                    Lot closed — modifications restricted
+                  </p>
+                  {liveBids.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-ink/5">
+                      <p className="text-[9px] uppercase tracking-widest text-ink/30 mb-1">
+                        Winning Bidder
+                      </p>
+                      <p className="text-lg font-serif text-gold">
+                        {liveBids[0].user_name}
+                      </p>
+                      <p className="text-2xl font-serif font-bold mt-1">
+                        ${Number(liveBids[0].amount).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1234,6 +1332,16 @@ export const AuctionDetailPage = () => {
                       ${Number(liveBids[0].amount).toLocaleString()}
                     </span>
                   </p>
+                )}
+
+                {liveBids.length > 0 && user && liveBids[0].user_id === user.id && (
+                  <Link
+                    to="/orders"
+                    className="mt-6 inline-flex items-center gap-2 px-8 py-3 bg-gold text-ink text-[10px] uppercase tracking-widest font-bold hover:bg-ink hover:text-paper transition-all shadow-xl"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    View My Orders
+                  </Link>
                 )}
               </div>
             )}

@@ -13,6 +13,7 @@ export const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -28,6 +29,16 @@ export const OrdersPage = () => {
     };
     fetchOrders();
   }, []);
+
+  const handleTrack = () => {
+    setMessage("Shipment tracking is being initialized. You will receive an update shortly.");
+    setTimeout(() => setMessage(""), 3000);
+  };
+
+  const handleInvoice = () => {
+    setMessage("Generating your digital invoice... Please wait.");
+    setTimeout(() => setMessage(""), 3000);
+  };
 
   if (loading) return (
     <div className="flex justify-center items-center h-[60vh]">
@@ -49,11 +60,20 @@ export const OrdersPage = () => {
         )}
       </header>
 
-      {error && (
-        <div className="mb-10 p-4 bg-red-50 text-red-600 text-[11px] uppercase tracking-widest font-bold border-l-2 border-red-600">
-          {error}
-        </div>
-      )}
+      <AnimatePresence>
+        {(error || message) && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`mb-10 p-4 text-[11px] uppercase tracking-widest font-bold border-l-2 ${
+              error ? "bg-red-50 text-red-600 border-red-600" : "bg-gold/10 text-gold border-gold"
+            }`}
+          >
+            {error || message}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="space-y-12">
         <AnimatePresence>
@@ -66,12 +86,12 @@ export const OrdersPage = () => {
               className="bg-white border border-ink/5 p-10 flex flex-col lg:flex-row gap-12 hover:border-gold/30 transition-all shadow-xl group"
             >
               {/* Image */}
-              <div className="w-full lg:w-64 h-64 bg-paper overflow-hidden flex-shrink-0 relative">
+              <div className="w-full lg:w-64 h-64 bg-ink overflow-hidden flex-shrink-0 relative">
                 {order.image ? (
                   <img
                     src={order.image}
                     alt={order.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700"
                     referrerPolicy="no-referrer"
                   />
                 ) : (
@@ -159,11 +179,17 @@ export const OrdersPage = () => {
                 </div>
 
                 <div className="flex gap-6 mt-10">
-                  <button className="flex items-center gap-3 px-8 py-3 bg-ink text-paper text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition-colors">
+                  <button
+                    onClick={handleTrack}
+                    className="flex items-center gap-3 px-8 py-3 bg-ink text-paper text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition-colors"
+                  >
                     <Truck className="w-4 h-4" />
                     Track Shipment
                   </button>
-                  <button className="flex items-center gap-3 px-8 py-3 border border-ink/10 text-[10px] uppercase tracking-widest font-bold hover:bg-ink hover:text-paper transition-colors">
+                  <button
+                    onClick={handleInvoice}
+                    className="flex items-center gap-3 px-8 py-3 border border-ink/10 text-[10px] uppercase tracking-widest font-bold hover:bg-ink hover:text-paper transition-colors"
+                  >
                     <ExternalLink className="w-4 h-4" />
                     View Invoice
                   </button>

@@ -154,21 +154,94 @@ exports.getAuctions = (req, res) => {
   );
 };
 
-// ✅ GET SINGLE AUCTION
+// ✅ GET SINGLE AUCTION (Updated to include Bid History)
 exports.getAuctionById = (req, res) => {
   const { id } = req.params;
 
+  // 1. Fetch the auction details
   db.query(
     `SELECT a.*, u.name AS seller_name 
      FROM auctions a 
      JOIN users u ON a.seller_id = u.id 
      WHERE a.id = ?`,
     [id],
-    (err, result) => {
-      if (err || result.length === 0)
-        return res.status(404).json({ message: "Not found" });
+    (err, auctionResults) => {
+      if (err) return res.status(500).json({ message: "Database error" });
+      if (auctionResults.length === 0)
+        return res.status(404).json({ message: "Auction not found" });
 
-      res.json(result[0]);
+      const auction = auctionResults[0];
+
+      // 2. Fetch the bid history for this auction
+      db.query(
+        `SELECT b.*, u.name AS user_name 
+         FROM bids b 
+         JOIN users u ON b.user_id = u.id 
+         WHERE b.auction_id = ? 
+         ORDER BY b.amount DESC`,
+        [id],
+        (err, bidResults) => {
+          if (err) {
+            console.error("BIDS FETCH ERROR:", err);
+            auction.bids = []; // Return empty array if error
+          } else {
+            auction.bids = bidResults;
+          }
+          
+          // Return the combined object
+          res.json(auction);
+        }
+      );
+    }
+  );
+};
+
+// ✅ DELETE AUCTION
+exports.deleteAuction = (req, res) => {
+  const { id } = req.params;
+  const seller_id = req.user.id;
+
+  // 1. Verify auction exists and belongs to the user
+  db.query(
+    "SELECT seller_id FROM auctions WHERE id = ?",
+    [id],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: "Database error" });
+      if (results.length === 0)
+        return res.status(404).json({ message: "Auction not found" });
+
+      if (results[0].seller_id !== seller_id) {
+        return res.status(403).json({
+          message: "Unauthorized to delete this listing.",
+        });
+      }
+
+      // 2. Delete related records first (manual cascade)
+      const deleteBids = "DELETE FROM bids WHERE auction_id = ?";
+      const deleteTransactions = "DELETE FROM transactions WHERE auction_id = ?";
+      const deleteWatchlist = "DELETE FROM watchlist WHERE auction_id = ?";
+      const deleteMedia = "DELETE FROM media WHERE auction_id = ?";
+      const deleteAuction = "DELETE FROM auctions WHERE id = ?";
+
+      db.query(deleteBids, [id], (err) => {
+        if (err) console.error("Error deleting bids:", err);
+        db.query(deleteTransactions, [id], (err) => {
+          if (err) console.error("Error deleting transactions:", err);
+          db.query(deleteWatchlist, [id], (err) => {
+            if (err) console.error("Error deleting watchlist:", err);
+            db.query(deleteMedia, [id], (err) => {
+              if (err) console.error("Error deleting media:", err);
+              db.query(deleteAuction, [id], (err) => {
+                if (err) {
+                  console.error("Error deleting auction:", err);
+                  return res.status(500).json({ message: "Delete failed" });
+                }
+                return res.json({ message: "Listing deleted successfully" });
+              });
+            });
+          });
+        });
+      });
     }
   );
 };
