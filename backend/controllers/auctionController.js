@@ -143,15 +143,27 @@ exports.updateAuction = (req, res) => {
 
 // ✅ GET ALL AUCTIONS
 exports.getAuctions = (req, res) => {
-  db.query(
-    `SELECT a.*, u.name AS seller_name 
-     FROM auctions a 
-     JOIN users u ON a.seller_id = u.id`,
-    (err, result) => {
-      if (err) return res.status(500).json({ message: "Error fetching" });
-      res.json(result);
-    }
-  );
+  const { status, seller_id } = req.query;
+  let query = `SELECT a.*, u.name AS seller_name FROM auctions a JOIN users u ON a.seller_id = u.id WHERE 1=1`;
+  let params = [];
+
+  if (status === 'active') {
+    query += ` AND a.end_time > NOW()`;
+  } else if (status === 'ended') {
+    query += ` AND a.end_time <= NOW()`;
+  }
+
+  if (seller_id) {
+    query += ` AND a.seller_id = ?`;
+    params.push(seller_id);
+  }
+
+  query += ` ORDER BY a.created_at DESC`;
+
+  db.query(query, params, (err, result) => {
+    if (err) return res.status(500).json({ message: "Error fetching" });
+    res.json(result);
+  });
 };
 
 // ✅ GET SINGLE AUCTION (Updated to include Bid History)
@@ -203,7 +215,7 @@ exports.deleteAuction = (req, res) => {
 
   // 1. Verify auction exists and belongs to the user
   db.query(
-    "SELECT seller_id FROM auctions WHERE id = ?",
+    "SELECT seller_id, end_time FROM auctions WHERE id = ?",
     [id],
     (err, results) => {
       if (err) return res.status(500).json({ message: "Database error" });
@@ -213,6 +225,13 @@ exports.deleteAuction = (req, res) => {
       if (results[0].seller_id !== seller_id) {
         return res.status(403).json({
           message: "Unauthorized to delete this listing.",
+        });
+      }
+
+      const isEnded = new Date(results[0].end_time) <= new Date();
+      if (!isEnded) {
+        return res.status(403).json({
+          message: "Cannot delete an active auction. Wait until it ends.",
         });
       }
 

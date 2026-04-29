@@ -2,15 +2,19 @@ import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Search } from "lucide-react";
 import { api } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 import { AuctionCard } from "../components/AuctionCard";
 
-export const HomePage = () => {
+export const MyAuctionsPage = () => {
+  const { user } = useAuth();
   const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/auctions?status=active").then(setAuctions).finally(() => setLoading(false));
-  }, []);
+    if (user?.id) {
+      api.get(`/auctions?seller_id=${user.id}`).then(setAuctions).finally(() => setLoading(false));
+    }
+  }, [user]);
 
   if (loading) return (
     <div className="flex justify-center items-center h-[60vh]">
@@ -26,10 +30,10 @@ export const HomePage = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="text-7xl font-serif mb-6 tracking-tight"
         >
-          Bidvora <span className="text-gold italic">Elite</span>
+          My <span className="text-gold italic">Auctions</span>
         </motion.h1>
         <p className="text-ink/60 font-light tracking-widest uppercase text-xs">
-          The Premier Destination for Rare Acquisitions
+          Manage Your Listed Items
         </p>
       </header>
 
@@ -44,8 +48,7 @@ export const HomePage = () => {
       {auctions.length === 0 && (
         <div className="text-center py-32 border border-dashed border-ink/10 bg-white/50">
           <Search className="w-12 h-12 text-ink/20 mx-auto mb-4" />
-          <p className="text-ink/40 font-serif italic text-2xl">The gallery is currently empty.</p>
-          <p className="text-xs uppercase tracking-widest text-ink/30 mt-2">Check back soon for new arrivals</p>
+          <p className="text-ink/40 font-serif italic text-2xl">You haven't listed any auctions yet.</p>
         </div>
       )}
     </div>

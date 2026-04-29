@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { User, Mail, Shield, Settings, Edit3, Save, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { User, Mail, Shield, Settings, Edit3, Save, X, CheckCircle2, AlertCircle, Camera } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
 
@@ -10,21 +10,34 @@ export const ProfilePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  
+  const fileInputRef = useRef(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
   });
 
-  // Sync formData with user when user changes or entering edit mode
+  // Sync formData with user when user changes or when cancelling edit mode
   useEffect(() => {
-    if (user) {
+    if (user && !isEditing) {
       setFormData({
         name: user.name || "",
         email: user.email || "",
       });
+      setPreviewUrl(user.profile_image || null);
     }
   }, [user, isEditing]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
 
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
@@ -53,7 +66,14 @@ export const ProfilePage = () => {
       setLoading(true);
       setError("");
       
-      const response = await api.put("/auth/profile", formData);
+      const data = new FormData();
+      data.append("name", formData.name);
+      data.append("email", formData.email);
+      if (selectedImage) {
+        data.append("profile_image", selectedImage);
+      }
+      
+      const response = await api.put("/auth/profile", data);
       
       // Update local auth context
       updateUser(response.user);
@@ -71,16 +91,32 @@ export const ProfilePage = () => {
   return (
     <div className="max-w-4xl mx-auto px-8 py-20">
       <header className="mb-20 text-center relative">
-        <div className="w-32 h-32 bg-ink text-paper rounded-full flex items-center justify-center text-5xl font-serif mx-auto mb-8 shadow-2xl border-4 border-gold/20 relative group">
-          {user?.name?.charAt(0)}
-          {!isEditing && (
-             <button 
-               onClick={() => setIsEditing(true)}
-               className="absolute -right-2 -bottom-2 w-10 h-10 bg-gold text-ink rounded-full flex items-center justify-center shadow-xl opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
-             >
-               <Edit3 size={18} />
-             </button>
-          )}
+        <div className="relative w-32 h-32 mx-auto mb-8 group">
+          <div className="w-full h-full bg-ink text-paper rounded-full flex items-center justify-center text-5xl font-serif shadow-2xl border-4 border-gold/20 overflow-hidden">
+            {previewUrl ? (
+              <img src={previewUrl} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              user?.name?.charAt(0)
+            )}
+          </div>
+          
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={(e) => {
+              handleImageChange(e);
+              setIsEditing(true);
+            }} 
+            accept="image/*" 
+            className="hidden" 
+          />
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute -right-2 -bottom-2 w-10 h-10 bg-gold text-ink rounded-full flex items-center justify-center shadow-xl hover:scale-110 transition-transform"
+            title="Change Photo"
+          >
+            <Camera size={18} />
+          </button>
         </div>
         
         {isEditing ? (

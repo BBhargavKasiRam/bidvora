@@ -20,14 +20,30 @@ export const Navbar = () => {
         {user ? (
           <>
             <Link to="/orders" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Orders</Link>
-            <Link to="/create" className="flex items-center gap-2 text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">
-              <PlusCircle className="w-4 h-4" />
-              List Item
-            </Link>
+            {user.role === 'seller' && (
+              <>
+                <Link to="/my-auctions" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">My Auctions</Link>
+                <Link to="/create" className="flex items-center gap-2 text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">
+                  <PlusCircle className="w-4 h-4" />
+                  List Item
+                </Link>
+              </>
+            )}
             <div className="flex items-center gap-4 pl-8 border-l border-ink/10">
-              <Link to="/profile" className="text-right group">
-                <p className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-gold transition-colors">Collector</p>
-                <p className="text-xs font-bold group-hover:text-gold transition-colors">{user.name}</p>
+              <Link to="/profile" className="flex items-center gap-3 group">
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-gold transition-colors">
+                    {user.role === 'seller' ? 'Seller' : 'Buyer'}
+                  </p>
+                  <p className="text-xs font-bold group-hover:text-gold transition-colors">{user.name}</p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-ink text-paper flex items-center justify-center font-serif text-lg overflow-hidden border-2 border-transparent group-hover:border-gold transition-colors shadow-sm">
+                  {user.profile_image ? (
+                    <img src={user.profile_image} alt={user.name} className="w-full h-full object-cover" />
+                  ) : (
+                    user.name?.charAt(0)
+                  )}
+                </div>
               </Link>
               <button 
                 onClick={() => { logout(); navigate("/login"); }}

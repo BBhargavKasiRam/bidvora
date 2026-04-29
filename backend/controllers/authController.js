@@ -1,6 +1,21 @@
 const db = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
+
+const uploadToCloudinary = (fileBuffer) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "bidvora/profiles" },
+      (error, result) => {
+        if (result) resolve(result);
+        else reject(error);
+      }
+    );
+    streamifier.createReadStream(fileBuffer).pipe(stream);
+  });
+};
 
 // 🔐 REGISTER
 exports.register = async (req, res) => {
@@ -121,35 +136,58 @@ exports.checkLoginEmail = (req, res) => {
 };
 
 // 🔐 UPDATE PROFILE
-exports.updateProfile = (req, res) => {
+exports.updateProfile = async (req, res) => {
   const { name, email } = req.body;
   const userId = req.user.id;
+  
+  console.log(`[updateProfile] User ${userId} updating profile`, { name, email, hasFile: !!req.file });
 
   if (!name || !email) {
     return res.status(400).json({ message: "Name and email are required" });
   }
 
-  // Check if email is already taken by another user
-  db.query(
-    "SELECT id FROM users WHERE email = ? AND id != ?",
-    [email, userId],
-    (err, result) => {
-      if (err) return res.status(500).json({ message: "Server error" });
-      if (result.length > 0) return res.status(400).json({ message: "Email already in use" });
+  try {
+    let imageUrl = null;
 
-      db.query(
-        "UPDATE users SET name = ?, email = ? WHERE id = ?",
-        [name, email, userId],
-        (err) => {
+    if (req.file) {
+      console.log(`[updateProfile] File detected, uploading to Cloudinary...`);
+      if (!req.file.mimetype.startsWith("image/")) {
+        return res.status(400).json({ message: "Only image files are allowed" });
+      }
+      const result = await uploadToCloudinary(req.file.buffer);
+      imageUrl = result.secure_url;
+      console.log(`[updateProfile] Cloudinary upload successful:`, imageUrl);
+    }
+
+    // Check if email is already taken by another user
+    db.query(
+      "SELECT id FROM users WHERE email = ? AND id != ?",
+      [email, userId],
+      (err, result) => {
+        if (err) return res.status(500).json({ message: "Server error" });
+        if (result.length > 0) return res.status(400).json({ message: "Email already in use" });
+
+        let sql = "UPDATE users SET name = ?, email = ? WHERE id = ?";
+        let params = [name, email, userId];
+
+        if (imageUrl) {
+          sql = "UPDATE users SET name = ?, email = ?, profile_image = ? WHERE id = ?";
+          params = [name, email, imageUrl, userId];
+        }
+
+        db.query(sql, params, (err) => {
           if (err) return res.status(500).json({ message: "Server error" });
           
           // Fetch updated user
-          db.query("SELECT id, name, email, role FROM users WHERE id = ?", [userId], (err, results) => {
+          db.query("SELECT id, name, email, role, profile_image FROM users WHERE id = ?", [userId], (err, results) => {
              if (err) return res.status(500).json({ message: "Server error" });
              res.json({ message: "Profile updated successfully", user: results[0] });
           });
-        }
-      );
-    }
-  );
+        });
+      }
+    );
+  } catch (err) {
+    console.error("PROFILE UPDATE ERROR:", err);
+    res.status(500).json({ message: "Profile update failed" });
+  }
 };

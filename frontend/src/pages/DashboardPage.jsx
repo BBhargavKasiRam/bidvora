@@ -23,7 +23,7 @@ export const DashboardPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const auctions = await api.get("/auctions");
+        const auctions = await api.get("/auctions?status=active");
         setRecentAuctions(auctions.slice(0, 3));
         setStats({
           active: auctions.length,

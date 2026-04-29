@@ -40,12 +40,13 @@ export const AuctionCard = ({ auction }) => {
     >
       {/* Auction image if exists */}
       {auction.image && (
-        <div className="w-full h-40 mb-4 overflow-hidden bg-paper">
+        <div className="relative w-full aspect-[4/3] mb-6 overflow-hidden bg-paper">
           <img
             src={auction.image}
             alt={auction.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
         </div>
       )}
 
@@ -59,7 +60,7 @@ export const AuctionCard = ({ auction }) => {
         </div>
       </div>
 
-      <h3 className="text-xl font-serif mb-2 group-hover:text-gold transition-colors">
+      <h3 className="text-2xl font-serif leading-tight mb-3 group-hover:text-gold transition-colors">
         {auction.title}
       </h3>
       <p className="text-sm text-ink/60 line-clamp-2 mb-4 font-light leading-relaxed flex-1">
@@ -79,8 +80,8 @@ export const AuctionCard = ({ auction }) => {
       <div className="flex flex-col gap-2 mt-auto">
         {isSeller && !isEnded && (
           <Link
-            to={`/auction/${auction.id}/edit`}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 border border-ink/10 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-ink hover:text-paper transition-all"
+            to={`/auction/${auction.id}?edit=true`}
+            className="flex items-center justify-center gap-2 px-4 py-3 border border-ink/10 text-[9px] uppercase tracking-[0.3em] font-bold hover:bg-ink hover:text-paper hover:border-ink transition-all"
           >
             <Edit3 className="w-3.5 h-3.5" />
             Edit Listing
@@ -89,7 +90,7 @@ export const AuctionCard = ({ auction }) => {
 
         <Link
           to={`/auction/${auction.id}`}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-ink text-paper text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-gold transition-all group/btn"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-ink text-paper text-[9px] uppercase tracking-[0.3em] font-bold hover:bg-gold transition-all group/btn shadow-md hover:shadow-xl"
         >
           See Auction
           <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
