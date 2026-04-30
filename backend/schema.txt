@@ -10,6 +10,7 @@ CREATE TABLE users (
   email VARCHAR(100) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
   role ENUM('buyer','seller') NOT NULL,
+  profile_image TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -67,3 +68,4 @@ CREATE TABLE media (
 );
 
 ALTER TABLE auctions ADD image TEXT;
+ALTER TABLE users ADD profile_image TEXT;

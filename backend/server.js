@@ -9,14 +9,19 @@ const app = express();
 const server = http.createServer(app);
 
 // ─── MIDDLEWARE ─────────────────────────────────────────────────────────────
+const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
 const io = new Server(server, {
   cors: {
-    origin: "*", // In production, replace with your specific frontend URL
+    origin: frontendUrl,
     methods: ["GET", "POST"],
   },
 });
 
-app.use(cors());
+app.use(cors({
+  origin: frontendUrl,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+}));
 app.use(express.json());
 
 // FIXED: Serving static files using absolute path to ensure images show up

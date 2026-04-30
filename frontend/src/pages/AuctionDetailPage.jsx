@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Clock,
@@ -537,11 +537,15 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
 export const AuctionDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const fileInputRef = useRef(null);
 
+  const searchParams = new URLSearchParams(location.search);
+  const shouldEdit = searchParams.get("edit") === "true";
+
   const [auction, setAuction] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(shouldEdit);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     title: "",
@@ -575,7 +579,7 @@ export const AuctionDetailPage = () => {
       });
 
       if (data.image) {
-        const baseURL = "http://localhost:5000";
+        const baseURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
         const fullUrl = data.image.startsWith("http")
           ? data.image
           : `${baseURL}/${data.image}`;
@@ -1007,40 +1011,40 @@ export const AuctionDetailPage = () => {
                       </button>
                     </>
                   ) : (
-                    <>
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="w-full py-4 border border-ink/10 text-[10px] uppercase tracking-[0.4em] hover:bg-ink hover:text-paper transition-all font-bold flex items-center justify-center gap-2"
-                      >
-                        <Edit3 size={13} /> Edit Listing
-                      </button>
-                      <button
-                        onClick={handleDelete}
-                        className="w-full py-4 border border-red-100 text-[10px] uppercase tracking-[0.4em] hover:bg-red-500 hover:text-white transition-all font-bold flex items-center justify-center gap-2 text-red-500 mt-2"
-                      >
-                        <Trash2 size={13} /> Delete Auction
-                      </button>
-                    </>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="w-full py-4 border border-ink/10 text-[10px] uppercase tracking-[0.4em] hover:bg-ink hover:text-paper transition-all font-bold flex items-center justify-center gap-2"
+                    >
+                      <Edit3 size={13} /> Edit Listing
+                    </button>
                   )}
                 </div>
               ) : (
-                <div className="p-5 bg-ink/5 border border-dashed border-ink/10 text-center">
-                  <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-ink/40">
-                    Lot closed — modifications restricted
-                  </p>
-                  {liveBids.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-ink/5">
-                      <p className="text-[9px] uppercase tracking-widest text-ink/30 mb-1">
-                        Winning Bidder
-                      </p>
-                      <p className="text-lg font-serif text-gold">
-                        {liveBids[0].user_name}
-                      </p>
-                      <p className="text-2xl font-serif font-bold mt-1">
-                        ${Number(liveBids[0].amount).toLocaleString()}
-                      </p>
-                    </div>
-                  )}
+                <div className="space-y-3">
+                  <div className="p-5 bg-ink/5 border border-dashed border-ink/10 text-center">
+                    <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-ink/40">
+                      Lot closed — modifications restricted
+                    </p>
+                    {liveBids.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-ink/5">
+                        <p className="text-[9px] uppercase tracking-widest text-ink/30 mb-1">
+                          Winning Bidder
+                        </p>
+                        <p className="text-lg font-serif text-gold">
+                          {liveBids[0].user_name}
+                        </p>
+                        <p className="text-2xl font-serif font-bold mt-1">
+                          ${Number(liveBids[0].amount).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleDelete}
+                    className="w-full py-4 border border-red-100 text-[10px] uppercase tracking-[0.4em] hover:bg-red-500 hover:text-white transition-all font-bold flex items-center justify-center gap-2 text-red-500"
+                  >
+                    <Trash2 size={13} /> Delete Auction
+                  </button>
                 </div>
               )}
             </div>

@@ -11,6 +11,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { CreateAuctionPage } from "./pages/CreateAuctionPage";
 import { AuctionDetailPage } from "./pages/AuctionDetailPage";
+import { MyAuctionsPage } from "./pages/MyAuctionsPage";
 import { Gavel } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 
@@ -31,6 +32,7 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/create" element={<CreateAuctionPage />} />
+              <Route path="/my-auctions" element={<MyAuctionsPage />} />
               <Route path="/auction/:id" element={<AuctionDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/orders" element={<OrdersPage />} />
