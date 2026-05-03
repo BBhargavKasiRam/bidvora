@@ -229,7 +229,7 @@ exports.deleteAuction = (req, res) => {
 
       if (results[0].seller_id !== seller_id) {
         return res.status(403).json({
-          message: "Unauthorized to delete this listing.",
+          message: "Unauthorized to delete this consignment.",
         });
       }
 
@@ -289,7 +289,7 @@ exports.assignMediator = (req, res) => {
         [mediator_id, commission || 0, id],
         (err) => {
           if (err) return res.status(500).json({ message: "Update failed" });
-          res.json({ message: "Mediator assigned successfully. Waiting for acceptance." });
+          res.json({ message: "Auctioneer assigned successfully. Waiting for acceptance." });
         }
       );
     }
@@ -307,7 +307,7 @@ exports.closeAuction = (req, res) => {
     (err, results) => {
       if (err) return res.status(500).json({ message: "Database error" });
       if (results.length === 0) return res.status(404).json({ message: "Auction not found" });
-      if (results[0].mediator_id !== user_id) return res.status(403).json({ message: "Unauthorized: Only the assigned mediator can lock the auction" });
+      if (results[0].mediator_id !== user_id) return res.status(403).json({ message: "Unauthorized: Only the assigned auctioneer can lock the auction" });
 
       db.query(
         "UPDATE auctions SET end_time = CURRENT_TIMESTAMP WHERE id = ?",

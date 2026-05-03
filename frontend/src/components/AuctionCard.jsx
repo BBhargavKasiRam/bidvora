@@ -8,7 +8,7 @@ export const AuctionCard = ({ auction }) => {
   const [timeLeft, setTimeLeft] = useState("");
   const { user } = useAuth();
 
-  const isSeller = user && auction && user.id === auction.seller_id;
+  const isConsignor = user && auction && user.id === auction.seller_id;
   const isEnded = auction && new Date(auction.end_time) <= new Date();
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export const AuctionCard = ({ auction }) => {
 
       <div className="flex justify-between items-start mb-4">
         <span className="text-[10px] uppercase tracking-[0.2em] text-ink/40">
-          By {auction.seller_name}
+          Owner: {auction.seller_name}
         </span>
         <div className="flex items-center gap-1 text-gold">
           <Clock className="w-3 h-3" />
@@ -84,13 +84,13 @@ export const AuctionCard = ({ auction }) => {
 
       {/* Role-based action buttons */}
       <div className="flex flex-col gap-2 mt-auto">
-        {isSeller && !isEnded && (
+        {isConsignor && !isEnded && (
           <Link
             to={`/auction/${auction.id}?edit=true`}
             className="flex items-center justify-center gap-2 px-4 py-3 border border-ink/10 text-[9px] uppercase tracking-[0.3em] font-bold hover:bg-ink hover:text-paper hover:border-ink transition-all"
           >
             <Edit3 className="w-3.5 h-3.5" />
-            Edit Listing
+            Edit Consignment
           </Link>
         )}
 

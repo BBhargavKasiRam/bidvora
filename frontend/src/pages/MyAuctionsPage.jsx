@@ -16,7 +16,7 @@ export const MyAuctionsPage = () => {
     if (user?.id) {
       Promise.all([
         api.get(`/auctions?seller_id=${user.id}`).then(setAuctions),
-        api.get("/users/mediators").then(setMediators)
+        api.get("/users/auctioneers").then(setMediators)
       ]).finally(() => setLoading(false));
     }
   }, [user]);
@@ -31,7 +31,7 @@ export const MyAuctionsPage = () => {
       setAuctions(auctions.map(a => a.id === assignForm.auctionId ? { ...a, mediator_id: assignForm.mediatorId } : a));
       setAssignForm({ auctionId: null, mediatorId: "", commission: "" });
     } catch (err) {
-      console.error("Failed to assign mediator", err);
+      console.error("Failed to assign auctioneer", err);
     }
   };
 
@@ -49,10 +49,10 @@ export const MyAuctionsPage = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="text-7xl font-serif mb-6 tracking-tight"
         >
-          My <span className="text-gold italic">Auctions</span>
+          My <span className="text-gold italic">Consignments</span>
         </motion.h1>
         <p className="text-ink/60 font-light tracking-widest uppercase text-xs">
-          Manage Your Listed Items
+          Manage Your Submitted Items
         </p>
       </header>
 
@@ -60,17 +60,17 @@ export const MyAuctionsPage = () => {
         {auctions.map(auction => (
           <div key={auction.id} className="relative">
             <AuctionCard auction={auction} />
-            <div className="mt-4 p-4 border border-ink/10 bg-white">
+            <div className="mt-4 p-4 border border-ink/10 bg-white shadow-sm">
               {auction.mediator_id ? (
                 <div className="text-xs text-ink/60 font-bold uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-green-500"></span> Mediator Assigned
+                  <span className="w-2 h-2 rounded-full bg-gold"></span> Auctioneer Assigned
                 </div>
               ) : (
                 <>
                   {assignForm.auctionId === auction.id ? (
                     <div className="space-y-3">
                       <div>
-                        <p className="text-[10px] uppercase tracking-widest font-bold mb-1">Select Mediator:</p>
+                        <p className="text-[10px] uppercase tracking-widest font-bold mb-1">Select Auctioneer:</p>
                         <select 
                           className="w-full p-2 border border-ink/10 text-sm focus:border-gold outline-none"
                           value={assignForm.mediatorId}
@@ -115,7 +115,7 @@ export const MyAuctionsPage = () => {
                       onClick={() => setAssignForm({ auctionId: auction.id, mediatorId: "", commission: "" })}
                       className="w-full py-2 bg-ink text-white text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition"
                     >
-                      Assign Mediator
+                      Assign Auctioneer
                     </button>
                   )}
                 </>
@@ -128,7 +128,7 @@ export const MyAuctionsPage = () => {
       {auctions.length === 0 && (
         <div className="text-center py-32 border border-dashed border-ink/10 bg-white/50">
           <Search className="w-12 h-12 text-ink/20 mx-auto mb-4" />
-          <p className="text-ink/40 font-serif italic text-2xl">You haven't listed any auctions yet.</p>
+          <p className="text-ink/40 font-serif italic text-2xl">You haven't submitted any items yet.</p>
         </div>
       )}
     </div>

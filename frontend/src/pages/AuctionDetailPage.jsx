@@ -762,8 +762,8 @@ export const AuctionDetailPage = () => {
     }
   };
 
-  const isSeller = user && auction && user.id === auction.seller_id;
-  const isMediator = user && auction && user.id === auction.mediator_id;
+  const isConsignor = user && auction && user.id === auction.seller_id;
+  const isAuctioneer = user && auction && user.id === auction.mediator_id;
   const isBuyer = user && auction && user.id !== auction.seller_id && user.id !== auction.mediator_id;
   const isEnded = auction && currentEndTime
     ? new Date(currentEndTime) <= new Date()
@@ -790,7 +790,7 @@ export const AuctionDetailPage = () => {
   }
 
   // ─── SELLER VIEW ──────────────────────────────────────────────────────────
-  if (isSeller) {
+  if (isConsignor) {
     return (
       <div className="max-w-5xl mx-auto px-8 py-16 font-sans text-ink">
         <AnimatePresence>
@@ -988,7 +988,7 @@ export const AuctionDetailPage = () => {
               <>
                 <VideoStream
                   auctionId={id}
-                  isBroadcaster={isMediator}
+                  isBroadcaster={isAuctioneer}
                   broadcasterName={auction.seller_name}
                 />
                 <LiveChat auctionId={id} />
@@ -1044,7 +1044,7 @@ export const AuctionDetailPage = () => {
               {!isEditing && (
                 <div className="mb-6 p-4 bg-paper border border-ink/5">
                   <p className="text-[10px] uppercase tracking-widest text-ink/40 font-bold mb-3">
-                    Seller Insights
+                    Consignor Insights
                   </p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs font-mono">
@@ -1230,7 +1230,7 @@ export const AuctionDetailPage = () => {
                 Anti-Snipe
               </span>
             )}
-            {isMediator && !isEnded && (
+            {isAuctioneer && !isEnded && (
               <button 
                 onClick={handleLockAuction}
                 className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-red-600 text-white text-[10px] uppercase tracking-widest font-bold hover:bg-red-700 transition"
@@ -1242,7 +1242,7 @@ export const AuctionDetailPage = () => {
 
           <VideoStream
             auctionId={id}
-            isBroadcaster={isMediator}
+            isBroadcaster={isAuctioneer}
             broadcasterName={auction.seller_name}
           />
 

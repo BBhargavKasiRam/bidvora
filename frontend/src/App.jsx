@@ -10,9 +10,9 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { CreateAuctionPage } from "./pages/CreateAuctionPage";
 import { AuctionDetailPage } from "./pages/AuctionDetailPage";
-import { MyAuctionsPage } from "./pages/MyAuctionsPage";
+import { MyAuctionsPage as MyConsignmentsPage } from "./pages/MyAuctionsPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { MediatorDashboardPage } from "./pages/MediatorDashboardPage";
+import { AuctioneerDashboardPage } from "./pages/AuctioneerDashboardPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 
@@ -36,8 +36,8 @@ export default function App() {
                 element={
                   !isAuthenticated ? (
                     <LandingPage />
-                  ) : user?.role === "mediator" ? (
-                    <MediatorDashboardPage />
+                  ) : user?.role === "auctioneer" ? (
+                    <AuctioneerDashboardPage />
                   ) : (
                     <DashboardPage />
                   )
@@ -45,25 +45,21 @@ export default function App() {
               />
 
               <Route
-                path="/mediator-studio"
-                element={<MediatorDashboardPage />}
+                path="/auctioneer-dashboard"
+                element={<AuctioneerDashboardPage />}
               />
               <Route
-                path="/mediator-dashboard"
-                element={<MediatorDashboardPage />}
-              />
-              <Route
-                path="/mediator/dashboard"
-                element={<MediatorDashboardPage />}
+                path="/auctioneer/dashboard"
+                element={<AuctioneerDashboardPage />}
               />
 
               <Route
-                path="/mediator"
+                path="/auctioneer"
                 element={
-                  isAuthenticated && user?.role === "mediator" ? (
-                    <MediatorDashboardPage />
+                  isAuthenticated && user?.role === "auctioneer" ? (
+                    <AuctioneerDashboardPage />
                   ) : (
-                    <HomePage />
+                    <DashboardPage />
                   )
                 }
               />
@@ -76,7 +72,7 @@ export default function App() {
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/create" element={<CreateAuctionPage />} />
-              <Route path="/my-auctions" element={<MyAuctionsPage />} />
+              <Route path="/my-consignments" element={<MyConsignmentsPage />} />
               <Route path="/auction/:id" element={<AuctionDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/orders" element={<OrdersPage />} />

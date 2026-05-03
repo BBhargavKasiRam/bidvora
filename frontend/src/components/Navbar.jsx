@@ -18,19 +18,19 @@ export const Navbar = () => {
         {/* Navigation Links */}
         {!user ? (
           <Link to="/gallery" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Gallery</Link>
-        ) : user.role === 'mediator' ? (
-          <Link to="/mediator" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Mediator Dashboard</Link>
+        ) : user.role === 'auctioneer' ? (
+          <Link to="/auctioneer-dashboard" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Auctioneer Dashboard</Link>
         ) : (
           <>
             <Link to="/" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Dashboard</Link>
             <Link to="/gallery" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Gallery</Link>
             <Link to="/orders" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Orders</Link>
-            {user.role === 'seller' && (
+            {user.role === 'consignor' && (
               <>
-                <Link to="/my-auctions" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">My Auctions</Link>
+                <Link to="/my-consignments" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">My Consignments</Link>
                 <Link to="/create" className="flex items-center gap-2 text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">
                   <PlusCircle className="w-4 h-4" />
-                  List Item
+                  Consign Item
                 </Link>
               </>
             )}
@@ -39,10 +39,10 @@ export const Navbar = () => {
 
         {user ? (
           <div className="flex items-center gap-4 pl-8 border-l border-ink/10">
-            <Link to="/profile" className="flex items-center gap-3 group">
+            <div className="flex items-center gap-3 group cursor-pointer" onClick={() => navigate("/profile")}>
               <div className="text-right">
                 <p className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-gold transition-colors">
-                  {user.role === 'seller' ? 'Seller' : user.role === 'mediator' ? 'Mediator' : 'Buyer'}
+                  {user.role === 'consignor' ? 'Consignor' : user.role === 'auctioneer' ? 'Auctioneer' : 'Buyer'}
                 </p>
                 <p className="text-xs font-bold group-hover:text-gold transition-colors">{user.name}</p>
               </div>
@@ -53,7 +53,7 @@ export const Navbar = () => {
                   user.name?.charAt(0)
                 )}
               </div>
-            </Link>
+            </div>
             <button 
               onClick={() => { logout(); navigate("/login"); }}
               className="p-2 hover:bg-ink/5 rounded-full transition-colors"

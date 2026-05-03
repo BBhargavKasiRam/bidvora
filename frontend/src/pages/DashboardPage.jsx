@@ -57,7 +57,7 @@ export const DashboardPage = () => {
           className="px-8 py-4 bg-ink text-paper text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition-all rounded-full flex items-center gap-3"
         >
           <Plus className="w-4 h-4" />
-          List New Item
+          Consign New Item
         </Link>
       </header>
 
@@ -81,7 +81,7 @@ export const DashboardPage = () => {
           <div className="absolute top-0 right-0 p-4 text-gold/10 group-hover:text-gold/20 transition-colors">
             <TrendingUp className="w-20 h-20" />
           </div>
-          <p className="text-[10px] uppercase tracking-widest text-ink/40 font-bold mb-4">My Listings</p>
+          <p className="text-[10px] uppercase tracking-widest text-ink/40 font-bold mb-4">My Consignments</p>
           <p className="text-5xl font-serif font-bold">{stats.listed}</p>
         </div>
       </div>

@@ -12,7 +12,7 @@ export const CreateAuctionPage = () => {
   const [selectedMediator, setSelectedMediator] = useState("");
 
   useEffect(() => {
-    api.get("/users/mediators").then(setMediators).catch(console.error);
+    api.get("/users/auctioneers").then(setMediators).catch(console.error);
   }, []);
 
   const [loading, setLoading] = useState(false);
@@ -60,7 +60,7 @@ export const CreateAuctionPage = () => {
     }
 
     if (!selectedMediator) {
-      return setError("Please select a mediator to run the live auction");
+      return setError("Please select an auctioneer to manage your consignment");
     }
 
     try {
@@ -95,9 +95,9 @@ export const CreateAuctionPage = () => {
         <div className="absolute top-0 left-0 w-full h-1.5 bg-[#C5A059]"></div>
 
         <header className="mb-16 border-b border-ink/5 pb-10">
-          <h2 className="text-6xl font-serif mb-4 tracking-tight">Create Listing</h2>
+          <h2 className="text-6xl font-serif mb-4 tracking-tight">Create Consignment</h2>
           <p className="text-[11px] uppercase tracking-[0.4em] text-ink/60 font-bold">
-            Curate a new entry for the BIDVORA collection
+            Submit a new entry for the BIDVORA collection
           </p>
         </header>
 
@@ -144,12 +144,11 @@ export const CreateAuctionPage = () => {
             />
           </div>
 
-          {/* MEDIATOR SELECTION */}
           <div className="space-y-4">
-            <h3 className="text-2xl font-serif mb-2">Assign Mediator</h3>
-            <p className="text-xs text-ink/50 uppercase tracking-widest font-bold mb-4">Select an expert to host your live auction</p>
+            <h3 className="text-2xl font-serif mb-2">Assign Auctioneer</h3>
+            <p className="text-xs text-ink/50 uppercase tracking-widest font-bold mb-4">Select an expert to manage and host your consignment</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {mediators.length === 0 && <p className="text-sm italic text-ink/50">No mediators available.</p>}
+              {mediators.length === 0 && <p className="text-sm italic text-ink/50">No auctioneers available.</p>}
               {mediators.map(m => (
                 <div 
                   key={m.id}
@@ -206,7 +205,7 @@ export const CreateAuctionPage = () => {
                 Processing...
               </>
             ) : (
-              "Create Auction"
+              "Submit Consignment"
             )}
           </button>
 

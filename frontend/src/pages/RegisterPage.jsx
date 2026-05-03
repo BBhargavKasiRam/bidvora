@@ -13,7 +13,7 @@ export const RegisterPage = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "buyer", // Default is buyer, buttons will change this
+    role: "buyer",
   });
 
   const [error, setError] = useState("");
@@ -206,21 +206,21 @@ export const RegisterPage = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setForm({ ...form, role: "seller" })}
+                      onClick={() => setForm({ ...form, role: "consignor" })}
                       className={`flex-1 py-3 text-[10px] uppercase tracking-[0.2em] font-bold border rounded-full transition-all ${
-                        form.role === "seller" ? "bg-ink text-white border-ink" : "text-ink/40 border-ink/10 hover:border-ink/30"
+                        form.role === "consignor" ? "bg-ink text-white border-ink" : "text-ink/40 border-ink/10 hover:border-ink/30"
                       }`}
                     >
-                      Sell Items
+                      Consign Items
                     </button>
                     <button
                       type="button"
-                      onClick={() => setForm({ ...form, role: "mediator" })}
+                      onClick={() => setForm({ ...form, role: "auctioneer" })}
                       className={`flex-1 py-3 text-[10px] uppercase tracking-[0.2em] font-bold border rounded-full transition-all ${
-                        form.role === "mediator" ? "bg-ink text-white border-ink" : "text-ink/40 border-ink/10 hover:border-ink/30"
+                        form.role === "auctioneer" ? "bg-ink text-white border-ink" : "text-ink/40 border-ink/10 hover:border-ink/30"
                       }`}
                     >
-                      Be Mediator
+                      Be Auctioneer
                     </button>
                   </div>
                 </div>
