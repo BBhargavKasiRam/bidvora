@@ -4,6 +4,7 @@ const cors = require("cors");
 const http = require("http");
 const path = require("path"); // Added for reliable file paths
 const { Server } = require("socket.io");
+const db = require("./config/db"); // For socket DB queries
 
 const app = express();
 const server = http.createServer(app);
@@ -32,11 +33,15 @@ const authRoutes = require("./routes/authRoutes");
 const auctionRoutes = require("./routes/auctionRoutes");
 const bidRoutes = require("./routes/bidRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const chatRoutes = require("./routes/chatRoutes");
+const mediatorRoutes = require("./routes/mediatorRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/auctions", auctionRoutes);
 app.use("/api/bids", bidRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/mediator", mediatorRoutes);
 
 // ─── SOCKET.IO: REAL-TIME BIDDING + WEBRTC SIGNALING ────────────────────────
 const broadcasters = {}; // auctionId → socketId
@@ -132,7 +137,64 @@ io.on("connection", (socket) => {
     }
     console.log("Socket disconnected:", socket.id);
   });
+
+  // ── Chat & Mediator Logic ──
+  socket.on("sendChatMessage", ({ auctionId, userId, message, isSystemMessage, user }) => {
+    db.query("SELECT id FROM muted_users WHERE auction_id = ? AND user_id = ?", [auctionId, userId], (err, results) => {
+        if (!err && results.length > 0) {
+            socket.emit("chatError", { message: "You are muted in this room." });
+            return;
+        }
+
+        const query = `INSERT INTO chat_messages (auction_id, user_id, message, is_system_message) VALUES (?, ?, ?, ?)`;
+        db.query(query, [auctionId, userId || null, message, isSystemMessage ? 1 : 0], (err, result) => {
+            if (err) {
+              console.error("Chat Error:", err);
+              return;
+            }
+            
+            const newMessage = {
+                id: result.insertId,
+                auction_id: auctionId,
+                user_id: userId,
+                message,
+                is_system_message: isSystemMessage ? 1 : 0,
+                created_at: new Date(),
+                user_name: user?.name || (isSystemMessage ? "System" : "Unknown"),
+                user_role: user?.role || "system"
+            };
+
+            io.to(`auction:${auctionId}`).emit("newChatMessage", newMessage);
+        });
+    });
+  });
+
+  socket.on("deleteChatMessage", ({ auctionId, messageId }) => {
+    db.query("DELETE FROM chat_messages WHERE id = ? AND auction_id = ?", [messageId, auctionId], (err) => {
+        if (!err) {
+            io.to(`auction:${auctionId}`).emit("chatMessageDeleted", { messageId });
+        }
+    });
+  });
+
+  socket.on("muteUser", ({ auctionId, targetUserId, mediatorId }) => {
+    db.query("INSERT INTO muted_users (auction_id, user_id, muted_by) VALUES (?, ?, ?)", [auctionId, targetUserId, mediatorId], (err) => {
+        if (!err) {
+            io.to(`auction:${auctionId}`).emit("userMuted", { userId: targetUserId });
+        }
+    });
+  });
+
+  socket.on("mediatorJoined", ({ auctionId }) => {
+     io.to(`auction:${auctionId}`).emit("mediatorPresence", { isPresent: true });
+  });
+
+  socket.on("mediatorLeft", ({ auctionId }) => {
+     io.to(`auction:${auctionId}`).emit("mediatorPresence", { isPresent: false });
+  });
+
 });
+
 
 // ─── START SERVER ───────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
