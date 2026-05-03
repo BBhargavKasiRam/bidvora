@@ -23,6 +23,11 @@ exports.register = async (req, res) => {
     let { name, email, password, role } = req.body;
     email = email.trim().toLowerCase().replace(/\s+/g, "");
 
+    const validRoles = ['buyer', 'seller', 'mediator'];
+    if (role && !validRoles.includes(role)) {
+      return res.status(400).json({ message: "Invalid role specified" });
+    }
+
     db.query("SELECT id FROM users WHERE email = ?", [email], async (err, result) => {
       if (err) return res.status(500).json({ message: "Server error" });
       if (result.length > 0) return res.status(400).json({ message: "Email already registered" });
