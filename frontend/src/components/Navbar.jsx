@@ -29,11 +29,14 @@ export const Navbar = () => {
                 </Link>
               </>
             )}
+            {user.role === 'mediator' && (
+              <Link to="/mediator" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Mediator Dashboard</Link>
+            )}
             <div className="flex items-center gap-4 pl-8 border-l border-ink/10">
               <Link to="/profile" className="flex items-center gap-3 group">
                 <div className="text-right">
                   <p className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-gold transition-colors">
-                    {user.role === 'seller' ? 'Seller' : 'Buyer'}
+                    {user.role === 'seller' ? 'Seller' : user.role === 'mediator' ? 'Mediator' : 'Buyer'}
                   </p>
                   <p className="text-xs font-bold group-hover:text-gold transition-colors">{user.name}</p>
                 </div>

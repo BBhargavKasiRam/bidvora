@@ -29,6 +29,7 @@ import {
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { getSocket } from "../lib/socket";
+import { ChatPanel } from "../components/ChatPanel";
 
 // ─── Anti-snipe Banner ────────────────────────────────────────────────────────
 const AntiSnipeBanner = ({ wasExtended, extensionMinutes }) => {
@@ -562,6 +563,7 @@ export const AuctionDetailPage = () => {
   const [antiSnipeData, setAntiSnipeData] = useState(null);
   const [liveBids, setLiveBids] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [mediatorPresent, setMediatorPresent] = useState(false);
 
   const fetchAuction = useCallback(async () => {
     try {
@@ -617,12 +619,24 @@ export const AuctionDetailPage = () => {
       setTimeout(() => setAntiSnipeData(null), 10000);
     });
 
+    socket.on("mediatorPresence", ({ isPresent }) => {
+      setMediatorPresent(isPresent);
+    });
+
+    if (user?.role === 'mediator') {
+      socket.emit("mediatorJoined", { auctionId: id });
+    }
+
     return () => {
+      if (user?.role === 'mediator') {
+        socket.emit("mediatorLeft", { auctionId: id });
+      }
       socket.emit("leaveAuction", id);
       socket.off("newBid");
       socket.off("timerExtended");
+      socket.off("mediatorPresence");
     };
-  }, [id]);
+  }, [id, user]);
 
   const handleUpdate = async () => {
     setError("");
@@ -816,6 +830,12 @@ export const AuctionDetailPage = () => {
               <span className="text-[10px] text-ink/40 font-mono uppercase tracking-widest">
                 Lot #{auction.id?.toString().padStart(4, "0")}
               </span>
+              {mediatorPresent && (
+                <span className="flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold text-blue-600 border border-blue-200 px-2 py-0.5 bg-blue-50">
+                  <Shield className="w-3 h-3" />
+                  Mediator Present
+                </span>
+              )}
             </div>
 
             {isEditing ? (
@@ -1063,15 +1083,20 @@ export const AuctionDetailPage = () => {
           </div>
         </div>
 
-        <div className="mt-16">
-          <div className="flex items-center gap-3 mb-6">
-            <History className="w-5 h-5 text-gold" />
-            <h2 className="text-2xl font-serif">Bid History</h2>
-            <span className="text-[10px] uppercase tracking-widest text-ink/40 font-bold ml-2">
-              {liveBids.length} bids
-            </span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-16">
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <History className="w-5 h-5 text-gold" />
+              <h2 className="text-2xl font-serif">Bid History</h2>
+              <span className="text-[10px] uppercase tracking-widest text-ink/40 font-bold ml-2">
+                {liveBids.length} bids
+              </span>
+            </div>
+            <BidHistory bids={liveBids} />
           </div>
-          <BidHistory bids={liveBids} />
+          <div className="h-[500px]">
+             <ChatPanel auctionId={id} socket={getSocket()} sellerId={auction.seller_id} />
+          </div>
         </div>
       </div>
     );
@@ -1134,6 +1159,12 @@ export const AuctionDetailPage = () => {
               <span className="flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold text-amber-600 border border-amber-200 px-2 py-0.5">
                 <Shield className="w-3 h-3" />
                 Anti-Snipe
+              </span>
+            )}
+            {mediatorPresent && (
+              <span className="flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold text-blue-600 border border-blue-200 px-2 py-0.5 bg-blue-50">
+                <Shield className="w-3 h-3" />
+                Mediator Present
               </span>
             )}
           </div>
@@ -1362,15 +1393,20 @@ export const AuctionDetailPage = () => {
         </div>
       </div>
 
-      <div className="mt-16 pt-12 border-t border-ink/5">
-        <div className="flex items-center gap-3 mb-8">
-          <History className="w-5 h-5 text-gold" />
-          <h2 className="text-3xl font-serif">Bid History</h2>
-          <span className="text-[10px] uppercase tracking-widest text-ink/40 font-bold ml-2 mt-1">
-            {liveBids.length} bids total
-          </span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-16 pt-12 border-t border-ink/5">
+        <div>
+          <div className="flex items-center gap-3 mb-8">
+            <History className="w-5 h-5 text-gold" />
+            <h2 className="text-3xl font-serif">Bid History</h2>
+            <span className="text-[10px] uppercase tracking-widest text-ink/40 font-bold ml-2 mt-1">
+              {liveBids.length} bids total
+            </span>
+          </div>
+          <BidHistory bids={liveBids} />
         </div>
-        <BidHistory bids={liveBids} />
+        <div className="h-[500px]">
+           <ChatPanel auctionId={id} socket={getSocket()} sellerId={auction.seller_id} />
+        </div>
       </div>
     </div>
   );

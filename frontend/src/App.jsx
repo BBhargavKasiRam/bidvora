@@ -12,12 +12,13 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { CreateAuctionPage } from "./pages/CreateAuctionPage";
 import { AuctionDetailPage } from "./pages/AuctionDetailPage";
 import { MyAuctionsPage } from "./pages/MyAuctionsPage";
+import { MediatorDashboardPage } from "./pages/MediatorDashboardPage";
 import { Gavel } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 
 
 export default function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   return (
     <BrowserRouter>
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="/auction/:id" element={<AuctionDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/mediator" element={isAuthenticated && user?.role === 'mediator' ? <MediatorDashboardPage /> : <HomePage />} />
             </Routes>
           </AnimatePresence>
         </main>
