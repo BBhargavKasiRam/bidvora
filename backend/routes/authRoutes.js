@@ -11,7 +11,8 @@ const {
   checkRegisterEmail,
   updateProfile,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  googleLogin
 } = require("../controllers/authController");
 
 // Multer memory storage
@@ -25,5 +26,6 @@ router.post("/check-register-email", checkRegisterEmail);
 router.put("/profile", authMiddleware, upload.single("profile_image"), updateProfile);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
+router.post("/google-login", googleLogin);
 
 module.exports = router;

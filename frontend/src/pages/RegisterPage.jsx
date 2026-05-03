@@ -1,12 +1,15 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 import { api } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
+import { signInWithGoogle } from "../lib/firebase";
 
 export const RegisterPage = () => {
   const [step, setStep] = useState(1);
   const [animating, setAnimating] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -17,6 +20,7 @@ export const RegisterPage = () => {
   });
 
   const [error, setError] = useState("");
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const emailRegex = /^(?!.*\.\.)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -57,11 +61,9 @@ export const RegisterPage = () => {
     if (step === 2) {
       try {
         setLoading(true);
-        console.log("Sending email to backend:", form.email);
-        const response = await api.post("/auth/check-register-email", {
+        await api.post("/auth/check-register-email", {
           email: form.email.trim().toLowerCase(),
         });
-        console.log("Backend response:", response.data);
 
         setAnimating(true);
         setTimeout(() => {
@@ -70,8 +72,7 @@ export const RegisterPage = () => {
         }, 200);
 
       } catch (err) {
-        console.error("Email check error:", err);
-        const msg = err.response?.data?.message || err.message || "Server error. Check backend.";
+        const msg = err.response?.data?.message || err.message || "Email already registered";
         setError(msg);
       } finally {
         setLoading(false);
@@ -90,7 +91,6 @@ export const RegisterPage = () => {
 
     try {
       setLoading(true);
-      console.log("Registering user:", form);
       await api.post("/auth/register", {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
@@ -99,11 +99,34 @@ export const RegisterPage = () => {
       });
       navigate("/login");
     } catch (err) {
-      console.error("Register error:", err);
       const msg = err.response?.data?.message || "Registration failed";
       setError(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSign up = async () => {
+    if (googleLoading) return;
+    try {
+      setGoogleLoading(true);
+      setError("");
+      const googleUser = await signInWithGoogle();
+      
+      const res = await api.post("/auth/google-login", {
+        email: googleUser.email,
+        name: googleUser.displayName,
+        profile_image: googleUser.photoURL,
+        uid: googleUser.uid
+      });
+
+      login(res.token, res.user);
+      navigate("/");
+    } catch (err) {
+      console.error(err);
+      setError("Google account connection failed.");
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -119,9 +142,12 @@ export const RegisterPage = () => {
 
   return (
     <div className="h-[calc(100vh-80px)] bg-white flex items-center justify-center px-4 overflow-hidden">
-      <div className="max-w-xl w-full p-14 rounded-2xl bg-white border border-ink/5 shadow-xl">
+      <div className="max-w-xl w-full p-14 rounded-2xl bg-white border border-ink/5 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gold"></div>
+
         <div className="mb-10 text-center">
           <h2 className="text-4xl font-serif">Join Bidvora</h2>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 font-bold mt-2">Create your professional profile</p>
         </div>
 
         {error && (
@@ -131,121 +157,134 @@ export const RegisterPage = () => {
           </div>
         )}
 
-        <form className="space-y-10">
-          <div className={`transition-all duration-200 ${animating ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0"}`}>
-            {step === 1 && (
-              <div>
-                <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Full Name</label>
-                <input
-                  autoFocus
-                  value={form.name}
-                  onChange={(e) => {
-                    setForm({ ...form, name: e.target.value.trimStart() });
-                    setError("");
-                  }}
-                  className="w-full border-b border-ink/10 py-5 text-xl outline-none"
-                />
-              </div>
+        <div className="space-y-6">
+          <button
+            onClick={handleGoogleSign up}
+            disabled={googleLoading}
+            className="w-full flex items-center justify-center gap-3 py-4 border border-ink/10 hover:bg-paper transition-all group"
+          >
+            {googleLoading ? (
+              <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
             )}
+            <span className="text-[10px] uppercase tracking-widest font-bold text-ink/60 group-hover:text-ink">
+              Register with Google
+            </span>
+          </button>
 
-            {step === 2 && (
-              <div>
-                <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Email Address</label>
-                <input
-                  autoFocus
-                  value={form.email}
-                  onChange={(e) => {
-                    setForm({ ...form, email: e.target.value.trimStart() });
-                    setError("");
-                  }}
-                  className="w-full border-b border-ink/10 py-5 text-xl outline-none"
-                />
-              </div>
-            )}
+          <div className="relative flex items-center py-4">
+            <div className="flex-grow border-t border-ink/5"></div>
+            <span className="flex-shrink mx-4 text-[9px] uppercase tracking-widest font-bold text-ink/20">or sign up manually</span>
+            <div className="flex-grow border-t border-ink/5"></div>
+          </div>
 
-            {step === 3 && (
-              <div className="space-y-8">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-10">
+            <div className={`transition-all duration-200 ${animating ? "opacity-0 translate-x-4" : "opacity-100"}`}>
+              {step === 1 && (
                 <div>
-                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Password</label>
+                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Full Name</label>
                   <input
-                    type="password"
-                    value={form.password}
+                    autoFocus
+                    value={form.name}
                     onChange={(e) => {
-                      setForm({ ...form, password: e.target.value });
+                      setForm({ ...form, name: e.target.value.trimStart() });
                       setError("");
                     }}
-                    className="w-full border-b border-ink/10 py-4 text-xl outline-none"
+                    className="w-full border-b border-ink/10 py-5 text-xl outline-none focus:border-gold transition-colors"
                   />
                 </div>
+              )}
 
+              {step === 2 && (
                 <div>
-                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Confirm Password</label>
+                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Email Address</label>
                   <input
-                    type="password"
-                    value={form.confirmPassword}
+                    autoFocus
+                    value={form.email}
                     onChange={(e) => {
-                      setForm({ ...form, confirmPassword: e.target.value });
+                      setForm({ ...form, email: e.target.value.trimStart() });
                       setError("");
                     }}
-                    className="w-full border-b border-ink/10 py-4 text-xl outline-none"
+                    className="w-full border-b border-ink/10 py-5 text-xl outline-none focus:border-gold transition-colors"
                   />
                 </div>
+              )}
 
-                {/* --- ADDED ROLE SELECTION BUTTONS --- */}
-                <div>
-                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-4 font-bold">I want to...</label>
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, role: "buyer" })}
-                      className={`flex-1 py-3 text-[10px] uppercase tracking-[0.2em] font-bold border rounded-full transition-all ${
-                        form.role === "buyer" ? "bg-ink text-white border-ink" : "text-ink/40 border-ink/10 hover:border-ink/30"
-                      }`}
-                    >
-                      Buy Items
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, role: "consignor" })}
-                      className={`flex-1 py-3 text-[10px] uppercase tracking-[0.2em] font-bold border rounded-full transition-all ${
-                        form.role === "consignor" ? "bg-ink text-white border-ink" : "text-ink/40 border-ink/10 hover:border-ink/30"
-                      }`}
-                    >
-                      Consign Items
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, role: "auctioneer" })}
-                      className={`flex-1 py-3 text-[10px] uppercase tracking-[0.2em] font-bold border rounded-full transition-all ${
-                        form.role === "auctioneer" ? "bg-ink text-white border-ink" : "text-ink/40 border-ink/10 hover:border-ink/30"
-                      }`}
-                    >
-                      Be Auctioneer
-                    </button>
+              {step === 3 && (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-2 gap-8">
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Password</label>
+                      <input
+                        type="password"
+                        value={form.password}
+                        onChange={(e) => {
+                          setForm({ ...form, password: e.target.value });
+                          setError("");
+                        }}
+                        className="w-full border-b border-ink/10 py-4 text-xl outline-none focus:border-gold transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Confirm</label>
+                      <input
+                        type="password"
+                        value={form.confirmPassword}
+                        onChange={(e) => {
+                          setForm({ ...form, confirmPassword: e.target.value });
+                          setError("");
+                        }}
+                        className="w-full border-b border-ink/10 py-4 text-xl outline-none focus:border-gold transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-ink/40 block mb-4 font-bold">Select Account Purpose</label>
+                    <div className="flex gap-4">
+                      {['buyer', 'consignor', 'auctioneer'].map((r) => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setForm({ ...form, role: r })}
+                          className={`flex-1 py-3 text-[9px] uppercase tracking-widest font-bold border transition-all ${
+                            form.role === r ? "bg-ink text-white border-ink shadow-lg" : "text-ink/40 border-ink/10 hover:border-ink/20"
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                {/* ------------------------------------ */}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
-          <div className="flex justify-between items-center">
-            {step > 1 && (
-              <button type="button" onClick={handleBack} className="text-xs uppercase tracking-widest text-ink/60">
-                Back
+            <div className="flex justify-between items-center">
+              {step > 1 && (
+                <button type="button" onClick={handleBack} className="text-xs uppercase tracking-widest text-ink/60 font-bold hover:text-ink">
+                  Back
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={loading}
+                className="ml-auto px-10 py-4 bg-ink text-white text-[10px] uppercase tracking-[0.4em] font-bold shadow-xl flex items-center justify-center gap-2"
+              >
+                {loading && <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />}
+                {step < 3 ? "Next" : "Complete"}
               </button>
-            )}
+            </div>
+          </form>
+        </div>
 
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={loading}
-              className="ml-auto px-10 py-3 bg-ink text-white text-xs uppercase tracking-[0.25em] rounded-full hover:bg-gold transition"
-            >
-              {loading ? "Please wait..." : step < 3 ? "Next" : "Create"}
-            </button>
-          </div>
-        </form>
+        <p className="mt-12 text-center text-[10px] uppercase tracking-widest text-ink/40 font-bold">
+          Already have an account?{" "}
+          <Link to="/login" className="text-ink hover:text-gold transition-colors">Sign in</Link>
+        </p>
       </div>
     </div>
   );

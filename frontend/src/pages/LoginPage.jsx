@@ -3,11 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
+import { signInWithGoogle } from "../lib/firebase";
 
 export const LoginPage = () => {
   const [step, setStep] = useState(1);
   const [animating, setAnimating] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const [form, setForm] = useState({
     email: "",
@@ -88,9 +90,6 @@ export const LoginPage = () => {
         password: form.password,
       });
 
-      // ✅ ONLY ADD THIS LINE
-      localStorage.setItem("token", res.token);
-
       login(res.token, res.user);
       navigate("/");
 
@@ -103,7 +102,6 @@ export const LoginPage = () => {
 
       setError(msg + " ");
 
-      // 🔥 KEEP USER ON CORRECT STEP
       if (msg.toLowerCase().includes("email")) {
         setStep(1);
       } else if (msg.toLowerCase().includes("password")) {
@@ -114,13 +112,34 @@ export const LoginPage = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    if (googleLoading) return;
+    try {
+      setGoogleLoading(true);
+      setError("");
+      const googleUser = await signInWithGoogle();
+      
+      const res = await api.post("/auth/google-login", {
+        email: googleUser.email,
+        name: googleUser.displayName,
+        profile_image: googleUser.photoURL,
+        uid: googleUser.uid
+      });
+
+      login(res.token, res.user);
+      navigate("/");
+    } catch (err) {
+      console.error(err);
+      setError("Google sign-in failed. Please try again.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const handleBack = () => {
     if (loading) return;
-
     setError("");
-
     setAnimating(true);
-
     setTimeout(() => {
       setStep(1);
       setAnimating(false);
@@ -129,10 +148,12 @@ export const LoginPage = () => {
 
   return (
     <div className="h-[calc(100vh-80px)] flex items-center justify-center bg-white px-4 overflow-hidden">
-      <div className="max-w-xl w-full p-14 rounded-2xl bg-white border border-ink/5 shadow-xl">
+      <div className="max-w-xl w-full p-14 rounded-2xl bg-white border border-ink/5 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gold"></div>
 
         <div className="text-center mb-10">
           <h2 className="text-4xl font-serif mb-2">Welcome Back</h2>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 font-bold">Access your BidVora account</p>
         </div>
 
         {error && (
@@ -142,90 +163,108 @@ export const LoginPage = () => {
           </div>
         )}
 
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-10">
-
-          <div className={`transition-all duration-200 ${
-            animating ? "opacity-0 translate-x-4" : "opacity-100"
-          }`}>
-
-            {/* EMAIL */}
-            {step === 1 && (
-              <div>
-                <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
-                  Email Address
-                </label>
-                <input
-                  autoFocus
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => {
-                    setForm({
-                      ...form,
-                      email: e.target.value.trimStart(),
-                    });
-                    setError("");
-                  }}
-                  className="w-full border-b border-ink/10 py-5 text-xl outline-none"
-                />
-              </div>
+        <div className="space-y-6">
+          <button
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            className="w-full flex items-center justify-center gap-3 py-4 border border-ink/10 hover:bg-paper transition-all group"
+          >
+            {googleLoading ? (
+              <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
             )}
+            <span className="text-[10px] uppercase tracking-widest font-bold text-ink/60 group-hover:text-ink">
+              Continue with Google
+            </span>
+          </button>
 
-            {/* PASSWORD */}
-            {step === 2 && (
-              <div>
-                <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
-                  Password
-                </label>
-                <input
-                  autoFocus
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => {
-                    setForm({ ...form, password: e.target.value });
-                    setError("");
-                  }}
-                  className="w-full border-b border-ink/10 py-5 text-xl outline-none"
-                />
-                <div className="mt-4 text-right">
-                  <Link
-                    to="/forgot-password"
-                    className="text-[10px] uppercase tracking-widest text-ink/60 hover:text-gold transition-colors font-bold"
-                  >
-                    Forgot Password?
-                  </Link>
-                </div>
-              </div>
-            )}
+          <div className="relative flex items-center py-4">
+            <div className="flex-grow border-t border-ink/5"></div>
+            <span className="flex-shrink mx-4 text-[9px] uppercase tracking-widest font-bold text-ink/20">or use email</span>
+            <div className="flex-grow border-t border-ink/5"></div>
           </div>
 
-          <div className="flex justify-between items-center">
-            {step === 2 && (
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-10">
+            <div className={`transition-all duration-200 ${
+              animating ? "opacity-0 translate-x-4" : "opacity-100"
+            }`}>
+
+              {/* EMAIL */}
+              {step === 1 && (
+                <div>
+                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
+                    Email Address
+                  </label>
+                  <input
+                    autoFocus
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => {
+                      setForm({
+                        ...form,
+                        email: e.target.value.trimStart(),
+                      });
+                      setError("");
+                    }}
+                    className="w-full border-b border-ink/10 py-5 text-xl outline-none focus:border-gold transition-colors"
+                  />
+                </div>
+              )}
+
+              {/* PASSWORD */}
+              {step === 2 && (
+                <div>
+                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
+                    Password
+                  </label>
+                  <input
+                    autoFocus
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => {
+                      setForm({ ...form, password: e.target.value });
+                      setError("");
+                    }}
+                    className="w-full border-b border-ink/10 py-5 text-xl outline-none focus:border-gold transition-colors"
+                  />
+                  <div className="mt-4 text-right">
+                    <Link
+                      to="/forgot-password"
+                      className="text-[10px] uppercase tracking-widest text-ink/60 hover:text-gold transition-colors font-bold"
+                    >
+                      Forgot Password?
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center">
+              {step === 2 && (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="text-xs uppercase tracking-widest text-ink/60 hover:text-ink font-bold"
+                >
+                  Back
+                </button>
+              )}
+
               <button
                 type="button"
-                onClick={handleBack}
-                className="text-xs uppercase tracking-widest text-ink/60"
+                onClick={handleNext}
+                disabled={loading}
+                className="ml-auto px-10 py-4 bg-ink text-white text-[10px] uppercase tracking-[0.4em] hover:bg-gold transition-all font-bold shadow-lg flex items-center justify-center gap-2"
               >
-                Back
+                {loading && <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />}
+                {step === 1 ? "Next" : "Login"}
               </button>
-            )}
+            </div>
+          </form>
+        </div>
 
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={loading}
-              className="ml-auto px-10 py-3 bg-ink text-white text-xs uppercase tracking-[0.25em] rounded-full hover:bg-gold transition"
-            >
-              {loading
-                ? "Please wait..."
-                : step === 1
-                ? "Next"
-                : "Login"}
-            </button>
-          </div>
-
-        </form>
-
-        <p className="mt-10 text-center text-[10px] uppercase tracking-widest text-ink/40">
+        <p className="mt-12 text-center text-[10px] uppercase tracking-widest text-ink/40 font-bold">
           New to Bidvora?{" "}
           <Link
             to="/register"
@@ -234,7 +273,6 @@ export const LoginPage = () => {
             Create an account
           </Link>
         </p>
-
       </div>
     </div>
   );

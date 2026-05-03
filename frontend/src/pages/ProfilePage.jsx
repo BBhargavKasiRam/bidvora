@@ -18,6 +18,7 @@ export const ProfilePage = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    role: "",
   });
 
   // Sync formData with user when user changes or when cancelling edit mode
@@ -26,6 +27,7 @@ export const ProfilePage = () => {
       setFormData({
         name: user.name || "",
         email: user.email || "",
+        role: user.role || "",
       });
       setPreviewUrl(user.profile_image || null);
     }
@@ -69,6 +71,7 @@ export const ProfilePage = () => {
       const data = new FormData();
       data.append("name", formData.name);
       data.append("email", formData.email);
+      data.append("role", formData.role);
       if (selectedImage) {
         data.append("profile_image", selectedImage);
       }
@@ -212,6 +215,33 @@ export const ProfilePage = () => {
                     />
                   ) : (
                     <p className="text-lg font-serif">{user?.email}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <div className="w-12 h-12 bg-ink/5 flex items-center justify-center text-ink/30 rounded-sm">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div className="grow">
+                  <p className="text-[9px] uppercase tracking-widest text-ink/40 font-bold mb-1">Account Role</p>
+                  {isEditing ? (
+                    <div className="flex gap-2 mt-1">
+                      {['buyer', 'consignor', 'auctioneer'].map(r => (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, role: r })}
+                          className={`flex-1 py-1 text-[8px] uppercase tracking-widest font-bold border rounded-full transition-all ${
+                            formData.role === r ? "bg-gold text-ink border-gold" : "text-ink/40 border-ink/10 hover:border-ink/20"
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-lg font-serif capitalize">{user?.role}</p>
                   )}
                 </div>
               </div>
