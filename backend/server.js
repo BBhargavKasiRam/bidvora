@@ -50,6 +50,7 @@ const orderRoutes = require("./routes/orderRoutes");
 
 const chatRoutes = require("./routes/chatRoutes");
 const mediatorRoutes = require("./routes/mediatorRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 
 app.use("/api/auth", authRoutes);
@@ -59,6 +60,7 @@ app.use("/api/orders", orderRoutes);
 
 app.use("/api/chat", chatRoutes);
 app.use("/api/mediator", mediatorRoutes);
+app.use("/api/users", userRoutes);
 
 
 // ─── SOCKET.IO: REAL-TIME BIDDING + WEBRTC SIGNALING ────────────────────────
