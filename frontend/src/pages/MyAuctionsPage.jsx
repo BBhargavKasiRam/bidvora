@@ -10,16 +10,17 @@ export const MyAuctionsPage = () => {
   const [auctions, setAuctions] = useState([]);
   const [mediators, setMediators] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [assignForm, setAssignForm] = useState({ auctionId: null, mediatorId: "", commission: "" });
+  const [assignForm, setAssignForm] = useState({ auctionId: null, mediatorId: "", commission: "5" });
+  const [auctioneerSearch, setAuctioneerSearch] = useState("");
 
   useEffect(() => {
     if (user?.id) {
       Promise.all([
         api.get(`/auctions?seller_id=${user.id}`).then(setAuctions),
-        api.get("/users/auctioneers").then(setMediators)
+        api.get(`/users/auctioneers?search=${auctioneerSearch}`).then(setMediators)
       ]).finally(() => setLoading(false));
     }
-  }, [user]);
+  }, [user, auctioneerSearch]);
 
   const handleAssignMediator = async () => {
     if (!assignForm.mediatorId || assignForm.commission === "") return;
@@ -70,17 +71,25 @@ export const MyAuctionsPage = () => {
                   {assignForm.auctionId === auction.id ? (
                     <div className="space-y-3">
                       <div>
-                        <p className="text-[10px] uppercase tracking-widest font-bold mb-1">Select Auctioneer:</p>
-                        <select 
-                          className="w-full p-2 border border-ink/10 text-sm focus:border-gold outline-none"
-                          value={assignForm.mediatorId}
-                          onChange={(e) => setAssignForm({ ...assignForm, mediatorId: e.target.value })}
-                        >
-                          <option value="" disabled>Choose...</option>
-                          {mediators.map(m => (
-                            <option key={m.id} value={m.id}>{m.name} (Rating: {m.rating})</option>
-                          ))}
-                        </select>
+                        <div className="space-y-2">
+                          <input 
+                            type="text"
+                            placeholder="Search auctioneer..."
+                            className="w-full p-2 border border-ink/10 text-[10px] uppercase outline-none focus:border-gold"
+                            value={auctioneerSearch}
+                            onChange={(e) => setAuctioneerSearch(e.target.value)}
+                          />
+                          <select 
+                            className="w-full p-2 border border-ink/10 text-sm focus:border-gold outline-none"
+                            value={assignForm.mediatorId}
+                            onChange={(e) => setAssignForm({ ...assignForm, mediatorId: e.target.value })}
+                          >
+                            <option value="" disabled>Choose...</option>
+                            {mediators.map(m => (
+                              <option key={m.id} value={m.id}>{m.name} (Rating: {m.rating})</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-widest font-bold mb-1">Commission %:</p>

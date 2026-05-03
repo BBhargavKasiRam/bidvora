@@ -19,7 +19,7 @@ const uploadToCloudinary = (fileBuffer) => {
 // ✅ CREATE AUCTION (IMAGE MANDATORY)
 exports.createAuction = async (req, res) => {
   try {
-    const { title, description, starting_price, duration, mediator_id } = req.body;
+    const { title, description, starting_price, duration, mediator_id, commission } = req.body;
 
     if (!title || !description || !starting_price || !duration || !mediator_id) {
       return res.status(400).json({ message: "All fields are required" });
@@ -49,9 +49,9 @@ exports.createAuction = async (req, res) => {
 
     db.query(
       `INSERT INTO auctions 
-      (seller_id, mediator_id, title, description, starting_price, current_price, end_time, image) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [seller_id, mediator_id, title, description, startPrice, startPrice, end_time, imageUrl],
+      (seller_id, mediator_id, title, description, starting_price, current_price, end_time, image, mediator_commission, mediator_status) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      [seller_id, mediator_id, title, description, startPrice, startPrice, end_time, imageUrl, commission || 0],
       (err, result) => {
         if (err) {
           console.error("DB ERROR:", err);
