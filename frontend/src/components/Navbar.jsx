@@ -15,13 +15,18 @@ export const Navbar = () => {
       </Link>
       
       <div className="flex items-center gap-8">
-        <Link to="/" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Dashboard</Link>
-        <Link to="/browse" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Gallery</Link>
+        {!user || user.role !== 'mediator' ? (
+          <Link to="/browse" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Gallery</Link>
+        ) : null}
+        
         {user ? (
           <>
-            <Link to="/orders" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Orders</Link>
+            {user.role === 'buyer' && (
+              <Link to="/orders" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Orders</Link>
+            )}
             {user.role === 'seller' && (
               <>
+                <Link to="/orders" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Orders</Link>
                 <Link to="/my-auctions" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">My Auctions</Link>
                 <Link to="/create" className="flex items-center gap-2 text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">
                   <PlusCircle className="w-4 h-4" />
@@ -30,13 +35,17 @@ export const Navbar = () => {
               </>
             )}
             {user.role === 'mediator' && (
+
               <Link to="/mediator" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Mediator Dashboard</Link>
+
             )}
             <div className="flex items-center gap-4 pl-8 border-l border-ink/10">
               <Link to="/profile" className="flex items-center gap-3 group">
                 <div className="text-right">
                   <p className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-gold transition-colors">
+
                     {user.role === 'seller' ? 'Seller' : user.role === 'mediator' ? 'Mediator' : 'Buyer'}
+
                   </p>
                   <p className="text-xs font-bold group-hover:text-gold transition-colors">{user.name}</p>
                 </div>

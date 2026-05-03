@@ -23,6 +23,11 @@ exports.placeBid = (req, res) => {
         return res.status(400).json({ message: "Auction has ended" });
       }
 
+      // Prevent seller from bidding on their own item
+      if (auction.seller_id === req.user.id) {
+        return res.status(403).json({ message: "You cannot place a bid on your own auction." });
+      }
+
       if (Number(amount) <= Number(auction.current_price)) {
         return res.status(400).json({
           message: `Bid must be higher than $${Number(auction.current_price).toLocaleString()}`,
@@ -107,6 +112,63 @@ exports.placeBid = (req, res) => {
                 wasExtended,
                 newEndTime: newEndTime ? newEndTime.toISOString() : null,
               });
+
+              // ─── AUTO-BID (PROXY BID) LOGIC ──────────────────────────────
+              // Check if another user has a proxy bid > amount
+              db.query(
+                `SELECT * FROM proxy_bids WHERE auction_id = ? AND user_id != ? AND max_bid_amount > ? ORDER BY max_bid_amount DESC LIMIT 1`,
+                [auction_id, req.user.id, amount],
+                (err, proxyResults) => {
+                  if (err || proxyResults.length === 0) return;
+
+                  const proxyBid = proxyResults[0];
+                  const increment = 10; // Auto-bid increment
+                  let autoBidAmount = Number(amount) + increment;
+                  
+                  if (autoBidAmount > proxyBid.max_bid_amount) {
+                     autoBidAmount = proxyBid.max_bid_amount;
+                  }
+
+                  // Update current price
+                  db.query(
+                    "UPDATE auctions SET current_price = ? WHERE id = ?",
+                    [autoBidAmount, auction_id],
+                    (err) => {
+                      if (err) return;
+                      
+                      // Insert the auto bid
+                      db.query(
+                        `INSERT INTO bids (auction_id, user_id, amount) VALUES (?, ?, ?)`,
+                        [auction_id, proxyBid.user_id, autoBidAmount],
+                        (err, autoInsertResult) => {
+                          if (err) return;
+
+                          db.query(
+                            "SELECT name FROM users WHERE id = ?",
+                            [proxyBid.user_id],
+                            (err, autoUserResult) => {
+                              const autoUserName = autoUserResult?.[0]?.name || "Auto Bidder";
+                              const autoBidData = {
+                                id: autoInsertResult.insertId,
+                                auction_id,
+                                user_id: proxyBid.user_id,
+                                user_name: autoUserName,
+                                amount: Number(autoBidAmount),
+                                created_at: new Date().toISOString(),
+                                isAutoBid: true
+                              };
+
+                              if (io) {
+                                io.to(`auction:${auction_id}`).emit("newBid", autoBidData);
+                              }
+                            }
+                          );
+                        }
+                      );
+                    }
+                  );
+                }
+              );
             }
           );
         }

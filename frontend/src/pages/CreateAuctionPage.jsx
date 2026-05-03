@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 import { api } from "../lib/api";
@@ -8,6 +8,12 @@ export const CreateAuctionPage = () => {
   const [description, setDescription] = useState("");
   const [startingPrice, setStartingPrice] = useState("");
   const [durationHours, setDurationHours] = useState("");
+  const [mediators, setMediators] = useState([]);
+  const [selectedMediator, setSelectedMediator] = useState("");
+
+  useEffect(() => {
+    api.get("/users/mediators").then(setMediators).catch(console.error);
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -53,6 +59,10 @@ export const CreateAuctionPage = () => {
       return setError("Please upload an image");
     }
 
+    if (!selectedMediator) {
+      return setError("Please select a mediator to run the live auction");
+    }
+
     try {
       setLoading(true);
       setError("");
@@ -64,6 +74,7 @@ export const CreateAuctionPage = () => {
       formData.append("description", description.trim());
       formData.append("starting_price", startingPrice);
       formData.append("duration", durationSeconds);
+      formData.append("mediator_id", selectedMediator);
       formData.append("image", image);
 
       await api.post("/auctions", formData);
@@ -131,6 +142,38 @@ export const CreateAuctionPage = () => {
               hidden
               onChange={handleImageChange}
             />
+          </div>
+
+          {/* MEDIATOR SELECTION */}
+          <div className="space-y-4">
+            <h3 className="text-2xl font-serif mb-2">Assign Mediator</h3>
+            <p className="text-xs text-ink/50 uppercase tracking-widest font-bold mb-4">Select an expert to host your live auction</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {mediators.length === 0 && <p className="text-sm italic text-ink/50">No mediators available.</p>}
+              {mediators.map(m => (
+                <div 
+                  key={m.id}
+                  onClick={() => { setSelectedMediator(m.id); setError(""); }}
+                  className={`p-4 border cursor-pointer transition-all ${selectedMediator === m.id ? 'border-gold bg-gold/5 shadow-md' : 'border-ink/10 hover:border-ink/30 bg-white'}`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-paper border border-ink/10 flex items-center justify-center overflow-hidden">
+                      {m.profile_image ? (
+                        <img src={m.profile_image} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="font-serif text-xl">{m.name.charAt(0)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">{m.name}</p>
+                      <p className="text-[10px] uppercase tracking-widest text-ink/40 mt-1">
+                        Rating: {Number(m.rating).toFixed(1)} ★ • Sold: {m.items_sold}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* PRICE */}

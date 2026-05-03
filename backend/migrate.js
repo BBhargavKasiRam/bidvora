@@ -1,3 +1,4 @@
+
 const db = require('./config/db');
 
 const migrate = async () => {
@@ -56,5 +57,6 @@ const migrate = async () => {
   console.log("Migration complete.");
   process.exit(0);
 };
+
 
 migrate();

@@ -213,6 +213,15 @@ export const RegisterPage = () => {
                     >
                       Sell Items
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, role: "mediator" })}
+                      className={`flex-1 py-3 text-[10px] uppercase tracking-[0.2em] font-bold border rounded-full transition-all ${
+                        form.role === "mediator" ? "bg-ink text-white border-ink" : "text-ink/40 border-ink/10 hover:border-ink/30"
+                      }`}
+                    >
+                      Be Mediator
+                    </button>
                   </div>
                 </div>
                 {/* ------------------------------------ */}

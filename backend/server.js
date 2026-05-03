@@ -10,19 +10,33 @@ const app = express();
 const server = http.createServer(app);
 
 // ─── MIDDLEWARE ─────────────────────────────────────────────────────────────
-const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+const allowedOrigins = [
+  process.env.FRONTEND_URL || "http://localhost:3000",
+  "http://localhost:3001",
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS not allowed for origin: ${origin}`));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+};
 
 const io = new Server(server, {
   cors: {
-    origin: frontendUrl,
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
-app.use(cors({
-  origin: frontendUrl,
-  methods: ["GET", "POST", "PUT", "DELETE"],
-}));
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // FIXED: Serving static files using absolute path to ensure images show up
@@ -33,15 +47,19 @@ const authRoutes = require("./routes/authRoutes");
 const auctionRoutes = require("./routes/auctionRoutes");
 const bidRoutes = require("./routes/bidRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+
 const chatRoutes = require("./routes/chatRoutes");
 const mediatorRoutes = require("./routes/mediatorRoutes");
+
 
 app.use("/api/auth", authRoutes);
 app.use("/api/auctions", auctionRoutes);
 app.use("/api/bids", bidRoutes);
 app.use("/api/orders", orderRoutes);
+
 app.use("/api/chat", chatRoutes);
 app.use("/api/mediator", mediatorRoutes);
+
 
 // ─── SOCKET.IO: REAL-TIME BIDDING + WEBRTC SIGNALING ────────────────────────
 const broadcasters = {}; // auctionId → socketId
@@ -51,12 +69,13 @@ io.on("connection", (socket) => {
 
   // ── Auction Room Management ──
   socket.on("joinAuction", (auctionId) => {
-    socket.join(`auction:${auctionId}`);
-    console.log(`Socket ${socket.id} joined auction:${auctionId}`);
+    const aid = String(auctionId);
+    socket.join(`auction:${aid}`);
+    console.log(`Socket ${socket.id} joined auction:${aid}`);
 
     // Notify the user immediately if a live stream is already active
-    if (broadcasters[auctionId]) {
-      socket.emit("broadcaster-present", { broadcasterId: broadcasters[auctionId] });
+    if (broadcasters[aid]) {
+      socket.emit("broadcaster-present", { broadcasterId: broadcasters[aid] });
     }
   });
 
@@ -66,9 +85,18 @@ io.on("connection", (socket) => {
 
   // Relay a new bid to all other users in the room
   socket.on("bidPlaced", ({ auctionId, bidData }) => {
-    // We use io.to instead of socket.to so the sender ALSO gets the update if needed,
-    // or keep socket.to to let the sender handle their own state.
     socket.to(`auction:${auctionId}`).emit("newBid", bidData);
+  });
+
+  // ── Live Chat Relay ──
+  socket.on("send-chat-message", ({ auctionId, messageData }) => {
+    // messageData: { senderId, senderName, text, timestamp }
+    io.to(`auction:${String(auctionId)}`).emit("receive-chat-message", messageData);
+  });
+
+  // ── Mediator Private Chat Relay ──
+  socket.on("send-mediator-message", ({ auctionId, messageData }) => {
+    io.to(`auction:${String(auctionId)}`).emit("receive-mediator-message", messageData);
   });
 
   // Anti-snipe timer extension relay
@@ -81,21 +109,34 @@ io.on("connection", (socket) => {
   });
 
   // ── WebRTC Video Streaming Logic ──
+
+  // Check stream status manually
+  socket.on("check-stream-status", ({ auctionId }) => {
+    const aid = String(auctionId);
+    console.log(`[Socket ${socket.id}] Checked stream status for auction ${aid}. Broadcaster:`, broadcasters[aid]);
+    if (broadcasters[aid]) {
+      socket.emit("broadcaster-present", { broadcasterId: broadcasters[aid] });
+    } else {
+      socket.emit("broadcast-ended");
+    }
+  });
   
   // Seller starts broadcasting
   socket.on("start-broadcast", ({ auctionId }) => {
-    broadcasters[auctionId] = socket.id;
-    socket.join(`auction:${auctionId}`);
+    const aid = String(auctionId);
+    broadcasters[aid] = socket.id;
+    socket.join(`auction:${aid}`);
     // Notify all viewers in the room that seller is live
-    socket.to(`auction:${auctionId}`).emit("broadcaster-present", {
+    socket.to(`auction:${aid}`).emit("broadcaster-present", {
       broadcasterId: socket.id,
     });
-    console.log(`Broadcaster started for auction ${auctionId}: ${socket.id}`);
+    console.log(`Broadcaster started for auction ${aid}: ${socket.id}. Broadcasters obj:`, broadcasters);
   });
 
   // Viewer is ready to watch and needs a handshake
   socket.on("viewer-ready", ({ auctionId, viewerId }) => {
-    const broadcasterId = broadcasters[auctionId];
+    const aid = String(auctionId);
+    const broadcasterId = broadcasters[aid];
     if (broadcasterId) {
       // Direct the broadcaster to start WebRTC handshake with this specific viewer
       io.to(broadcasterId).emit("new-viewer", { viewerId });
@@ -119,9 +160,10 @@ io.on("connection", (socket) => {
 
   // Seller manually ends broadcast
   socket.on("broadcast-ended-notify", ({ auctionId }) => {
-    if (broadcasters[auctionId] === socket.id) {
-      delete broadcasters[auctionId];
-      io.to(`auction:${auctionId}`).emit("broadcast-ended");
+    const aid = String(auctionId);
+    if (broadcasters[aid] === socket.id) {
+      delete broadcasters[aid];
+      io.to(`auction:${aid}`).emit("broadcast-ended");
     }
   });
 

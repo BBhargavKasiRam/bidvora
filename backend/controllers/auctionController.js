@@ -19,9 +19,9 @@ const uploadToCloudinary = (fileBuffer) => {
 // ✅ CREATE AUCTION (IMAGE MANDATORY)
 exports.createAuction = async (req, res) => {
   try {
-    const { title, description, starting_price, duration } = req.body;
+    const { title, description, starting_price, duration, mediator_id } = req.body;
 
-    if (!title || !description || !starting_price || !duration) {
+    if (!title || !description || !starting_price || !duration || !mediator_id) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -49,9 +49,9 @@ exports.createAuction = async (req, res) => {
 
     db.query(
       `INSERT INTO auctions 
-      (seller_id, title, description, starting_price, current_price, end_time, image) 
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [seller_id, title, description, startPrice, startPrice, end_time, imageUrl],
+      (seller_id, mediator_id, title, description, starting_price, current_price, end_time, image) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [seller_id, mediator_id, title, description, startPrice, startPrice, end_time, imageUrl],
       (err, result) => {
         if (err) {
           console.error("DB ERROR:", err);
@@ -143,7 +143,7 @@ exports.updateAuction = (req, res) => {
 
 // ✅ GET ALL AUCTIONS
 exports.getAuctions = (req, res) => {
-  const { status, seller_id } = req.query;
+  const { status, seller_id, mediator_id } = req.query;
   let query = `SELECT a.*, u.name AS seller_name FROM auctions a JOIN users u ON a.seller_id = u.id WHERE 1=1`;
   let params = [];
 
@@ -156,6 +156,11 @@ exports.getAuctions = (req, res) => {
   if (seller_id) {
     query += ` AND a.seller_id = ?`;
     params.push(seller_id);
+  }
+
+  if (mediator_id) {
+    query += ` AND a.mediator_id = ?`;
+    params.push(mediator_id);
   }
 
   query += ` ORDER BY a.created_at DESC`;
@@ -263,4 +268,131 @@ exports.deleteAuction = (req, res) => {
       });
     }
   );
+};
+
+// ✅ ASSIGN MEDIATOR
+exports.assignMediator = (req, res) => {
+  const { id } = req.params;
+  const { mediator_id, commission } = req.body;
+  const seller_id = req.user.id;
+
+  db.query(
+    "SELECT seller_id FROM auctions WHERE id = ?",
+    [id],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: "Database error" });
+      if (results.length === 0) return res.status(404).json({ message: "Auction not found" });
+      if (results[0].seller_id !== seller_id) return res.status(403).json({ message: "Unauthorized" });
+
+      db.query(
+        "UPDATE auctions SET mediator_id = ?, mediator_status = 'pending', mediator_commission = ? WHERE id = ?",
+        [mediator_id, commission || 0, id],
+        (err) => {
+          if (err) return res.status(500).json({ message: "Update failed" });
+          res.json({ message: "Mediator assigned successfully. Waiting for acceptance." });
+        }
+      );
+    }
+  );
+};
+
+// ✅ CLOSE AUCTION (MEDIATOR ONLY)
+exports.closeAuction = (req, res) => {
+  const { id } = req.params;
+  const user_id = req.user.id;
+
+  db.query(
+    "SELECT mediator_id FROM auctions WHERE id = ?",
+    [id],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: "Database error" });
+      if (results.length === 0) return res.status(404).json({ message: "Auction not found" });
+      if (results[0].mediator_id !== user_id) return res.status(403).json({ message: "Unauthorized: Only the assigned mediator can lock the auction" });
+
+      db.query(
+        "UPDATE auctions SET end_time = CURRENT_TIMESTAMP WHERE id = ?",
+        [id],
+        (err) => {
+          if (err) return res.status(500).json({ message: "Update failed" });
+          res.json({ message: "Auction locked successfully" });
+        }
+      );
+    }
+  );
+};
+
+// ✅ UPDATE MEDIATOR STATUS (Accept / Reject)
+exports.updateMediatorStatus = (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body; // 'accepted' or 'rejected'
+  const user_id = req.user.id;
+
+  if (!['accepted', 'rejected'].includes(status)) {
+    return res.status(400).json({ message: "Invalid status" });
+  }
+
+  db.query(
+    "UPDATE auctions SET mediator_status = ? WHERE id = ? AND mediator_id = ?",
+    [status, id, user_id],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: "Update failed" });
+      if (results.affectedRows === 0) return res.status(403).json({ message: "Unauthorized or auction not found" });
+      res.json({ message: `Assignment ${status}` });
+    }
+  );
+};
+
+// ✅ GET MEDIATOR MESSAGES
+exports.getMediatorMessages = (req, res) => {
+  const { id } = req.params;
+  const user_id = req.user.id;
+
+  // Check if user is seller or mediator
+  db.query("SELECT seller_id, mediator_id FROM auctions WHERE id = ?", [id], (err, results) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    if (results.length === 0) return res.status(404).json({ message: "Auction not found" });
+    const auction = results[0];
+    if (user_id !== auction.seller_id && user_id !== auction.mediator_id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    db.query(
+      `SELECT m.*, u.name as sender_name 
+       FROM mediator_messages m 
+       JOIN users u ON m.sender_id = u.id 
+       WHERE m.auction_id = ? ORDER BY m.created_at ASC`,
+      [id],
+      (err, messages) => {
+        if (err) return res.status(500).json({ message: "Database error" });
+        res.json(messages);
+      }
+    );
+  });
+};
+
+// ✅ SEND MEDIATOR MESSAGE
+exports.sendMediatorMessage = (req, res) => {
+  const { id } = req.params;
+  const { message } = req.body;
+  const user_id = req.user.id;
+
+  if (!message || !message.trim()) return res.status(400).json({ message: "Message is required" });
+
+  db.query("SELECT seller_id, mediator_id FROM auctions WHERE id = ?", [id], (err, results) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    if (results.length === 0) return res.status(404).json({ message: "Auction not found" });
+    const auction = results[0];
+    if (user_id !== auction.seller_id && user_id !== auction.mediator_id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    db.query(
+      "INSERT INTO mediator_messages (auction_id, sender_id, message) VALUES (?, ?, ?)",
+      [id, user_id, message],
+      (err) => {
+        if (err) return res.status(500).json({ message: "Failed to send message" });
+        res.status(201).json({ message: "Message sent" });
+      }
+    );
+  });
 };

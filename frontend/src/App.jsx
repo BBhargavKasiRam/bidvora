@@ -4,7 +4,6 @@ import { AnimatePresence } from "motion/react";
 import { Navbar } from "./components/Navbar";
 import { HomePage } from "./pages/HomePage";
 import { LandingPage } from "./pages/LandingPage";
-import { DashboardPage } from "./pages/DashboardPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -12,7 +11,9 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { CreateAuctionPage } from "./pages/CreateAuctionPage";
 import { AuctionDetailPage } from "./pages/AuctionDetailPage";
 import { MyAuctionsPage } from "./pages/MyAuctionsPage";
+
 import { MediatorDashboardPage } from "./pages/MediatorDashboardPage";
+
 import { Gavel } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 
@@ -27,7 +28,12 @@ export default function App() {
         <main className="grow">
           <AnimatePresence mode="wait">
             <Routes>
-              <Route path="/" element={isAuthenticated ? <DashboardPage /> : <LandingPage />} />
+              <Route path="/" element={
+                !isAuthenticated ? <LandingPage /> :
+                user?.role === 'mediator' ? <MediatorDashboard /> :
+                <HomePage />
+              } />
+              <Route path="/mediator-studio" element={<MediatorDashboard />} />
               <Route path="/gallery" element={<HomePage />} />
               <Route path="/browse" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />

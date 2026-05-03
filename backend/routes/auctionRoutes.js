@@ -8,6 +8,11 @@ const {
   getAuctionById,
   updateAuction,
   deleteAuction,
+  assignMediator,
+  closeAuction,
+  updateMediatorStatus,
+  getMediatorMessages,
+  sendMediatorMessage,
 } = require("../controllers/auctionController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -28,5 +33,18 @@ router.put("/:id", authMiddleware, upload.single("image"), updateAuction);
 
 // 🔥 Delete auction
 router.delete("/:id", authMiddleware, deleteAuction);
+
+// 🔥 Assign Mediator
+router.put("/:id/assign-mediator", authMiddleware, assignMediator);
+
+// 🔥 Mediator Accept/Reject
+router.put("/:id/mediator-status", authMiddleware, updateMediatorStatus);
+
+// 🔥 Mediator Private Messages
+router.get("/:id/mediator-messages", authMiddleware, getMediatorMessages);
+router.post("/:id/mediator-messages", authMiddleware, sendMediatorMessage);
+
+// 🔥 Close Auction
+router.put("/:id/close", authMiddleware, closeAuction);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
-import { Clock, ChevronRight, Edit3 } from "lucide-react";
+import { Clock, ChevronRight, Edit3, Video } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export const AuctionCard = ({ auction }) => {
@@ -47,6 +47,12 @@ export const AuctionCard = ({ auction }) => {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          {!isEnded && auction.mediator_id && (
+            <div className="absolute top-3 left-3 bg-red-600 text-white px-2 py-1 text-[8px] uppercase tracking-widest font-bold flex items-center gap-1.5 shadow-lg z-10 rounded-full">
+              <Video className="w-3 h-3" />
+              Live Stream
+            </div>
+          )}
         </div>
       )}
 

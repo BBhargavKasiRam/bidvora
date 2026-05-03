@@ -11,6 +11,8 @@ CREATE TABLE users (
   password VARCHAR(255) NOT NULL,
   role ENUM('buyer','seller','mediator') NOT NULL,
   profile_image TEXT,
+  rating DECIMAL(3,2) DEFAULT 0.00,
+  items_sold INT DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -23,9 +25,11 @@ CREATE TABLE auctions (
   starting_price DECIMAL(10,2),
   current_price DECIMAL(10,2),
   end_time DATETIME,
+  mediator_id INT,
   status ENUM('active','ended') DEFAULT 'active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (seller_id) REFERENCES users(id)
+  FOREIGN KEY (seller_id) REFERENCES users(id),
+  FOREIGN KEY (mediator_id) REFERENCES users(id)
 );
 
 -- BIDS
@@ -70,6 +74,7 @@ CREATE TABLE media (
 ALTER TABLE auctions ADD image TEXT;
 ALTER TABLE users ADD profile_image TEXT;
 
+<<<<<<< HEAD
 -- CHAT MESSAGES
 CREATE TABLE chat_messages (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -106,4 +111,5 @@ CREATE TABLE muted_users (
   FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (muted_by) REFERENCES users(id) ON DELETE CASCADE
+
 );

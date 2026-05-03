@@ -202,7 +202,7 @@ const BidHistory = ({ bids }) => {
 };
 
 // ─── WebRTC Video Component (FIXED FOR DEVICES) ───────────────────────────────
-const VideoStream = ({ auctionId, isSeller, sellerName }) => {
+const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnections = useRef({});
@@ -271,7 +271,7 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
       }
     });
 
-    if (isSeller) {
+    if (isBroadcaster) {
       socket.on("new-viewer", async ({ viewerId }) => {
         if (!localStream.current) return;
         const pc = new RTCPeerConnection(ICE_SERVERS);
@@ -346,10 +346,24 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
       socket.off("answer");
       socket.off("ice-candidate");
     };
-  }, [isSeller, auctionId]);
+  }, [isBroadcaster, auctionId]);
+
+  useEffect(() => {
+    // Check stream status periodically just in case
+    const interval = setInterval(() => {
+      getSocket().emit("check-stream-status", { auctionId: String(auctionId) });
+    }, 5000);
+    // And check once immediately
+    getSocket().emit("check-stream-status", { auctionId: String(auctionId) });
+
+    return () => clearInterval(interval);
+  }, [auctionId]);
 
   const startBroadcast = async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Your browser does not support camera access, or you are not using HTTPS/localhost.");
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
         audio: true,
@@ -359,7 +373,7 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
         localVideoRef.current.srcObject = stream;
       }
       setIsBroadcasting(true);
-      getSocket().emit("start-broadcast", { auctionId });
+      getSocket().emit("start-broadcast", { auctionId: String(auctionId) });
     } catch (err) {
       console.error("Camera access error:", err);
       alert("Could not access camera/microphone: " + err.message);
@@ -375,14 +389,14 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
     peerConnections.current = {};
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     setIsBroadcasting(false);
-    getSocket().emit("broadcast-ended-notify", { auctionId });
+    getSocket().emit("broadcast-ended-notify", { auctionId: String(auctionId) });
   };
 
   const watchStream = () => {
     if (!broadcasterId) return;
     setIsWatching(true);
     setConnectionState("connecting");
-    getSocket().emit("viewer-ready", { auctionId, viewerId: getSocket().id });
+    getSocket().emit("viewer-ready", { auctionId: String(auctionId), viewerId: getSocket().id });
   };
 
   const toggleMic = () => {
@@ -399,7 +413,7 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
     }
   };
 
-  if (isSeller) {
+  if (isBroadcaster) {
     return (
       <div className="bg-white border border-ink/10 p-6 space-y-4">
         <div className="flex items-center justify-between">
@@ -492,6 +506,7 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
               <video
                 ref={remoteVideoRef}
                 autoPlay
+                muted={false} // Viewers need audio
                 playsInline // Critical for iOS
                 onClick={() => toggleFullscreen(remoteVideoRef)}
                 className="w-full h-full object-cover cursor-pointer"
@@ -509,7 +524,7 @@ const VideoStream = ({ auctionId, isSeller, sellerName }) => {
             <div className="aspect-video bg-paper/50 border border-dashed border-gold/30 flex flex-col items-center justify-center gap-3">
               <Video className="w-8 h-8 text-gold/50" />
               <p className="text-xs text-ink/50 uppercase tracking-widest font-bold">
-                {sellerName} is live
+                {broadcasterName} is live
               </p>
             </div>
           )}
@@ -563,7 +578,6 @@ export const AuctionDetailPage = () => {
   const [antiSnipeData, setAntiSnipeData] = useState(null);
   const [liveBids, setLiveBids] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [mediatorPresent, setMediatorPresent] = useState(false);
 
   const fetchAuction = useCallback(async () => {
     try {
@@ -587,10 +601,20 @@ export const AuctionDetailPage = () => {
           : `${baseURL}/${data.image}`;
         setImagePreview(fullUrl);
       }
+
+      if (user) {
+        // Fetch Proxy Bid if user is logged in
+        api.get(`/proxy-bids/${id}`)
+          .then(res => {
+            if (res.max_bid_amount) setActiveProxyBid(res.max_bid_amount);
+          })
+          .catch(e => console.error(e));
+      }
+
     } catch {
       navigate("/");
     }
-  }, [id, navigate]);
+  }, [id, navigate, user]);
 
   useEffect(() => {
     fetchAuction();
@@ -604,7 +628,7 @@ export const AuctionDetailPage = () => {
 
   useEffect(() => {
     const socket = getSocket();
-    socket.emit("joinAuction", id);
+    socket.emit("joinAuction", String(id));
 
     socket.on("newBid", (bidData) => {
       setLiveBids((prev) => [bidData, ...prev]);
@@ -628,9 +652,6 @@ export const AuctionDetailPage = () => {
     }
 
     return () => {
-      if (user?.role === 'mediator') {
-        socket.emit("mediatorLeft", { auctionId: id });
-      }
       socket.emit("leaveAuction", id);
       socket.off("newBid");
       socket.off("timerExtended");
@@ -700,12 +721,60 @@ export const AuctionDetailPage = () => {
     }
   };
 
+  const handleSetProxyBid = async (e) => {
+    e.preventDefault();
+    const amount = Number(proxyBidLimit);
+    if (!amount || amount <= Number(auction?.current_price)) {
+      setError("Proxy bid limit must be higher than current price");
+      return;
+    }
+    try {
+      setProxyLoading(true);
+      await api.post("/proxy-bids", {
+        auction_id: Number(id),
+        max_bid_amount: amount
+      });
+      setActiveProxyBid(amount);
+      setSuccess(`Auto-bidding activated up to $${amount.toLocaleString()}`);
+      setProxyBidLimit("");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to set proxy bid");
+    } finally {
+      setProxyLoading(false);
+    }
+  };
+
+  const handleRemoveProxyBid = async () => {
+    try {
+      setProxyLoading(true);
+      await api.delete(`/proxy-bids/${id}`);
+      setActiveProxyBid(null);
+      setSuccess("Auto-bidding disabled.");
+    } catch (err) {
+      setError("Failed to remove proxy bid");
+    } finally {
+      setProxyLoading(false);
+    }
+  };
+
   const isSeller = user && auction && user.id === auction.seller_id;
-  const isBuyer = user && auction && user.id !== auction.seller_id;
+  const isMediator = user && auction && user.id === auction.mediator_id;
+  const isBuyer = user && auction && user.id !== auction.seller_id && user.id !== auction.mediator_id;
   const isEnded = auction && currentEndTime
     ? new Date(currentEndTime) <= new Date()
     : false;
   const minBid = auction ? Number(auction.current_price) + 1 : 1;
+
+  const handleLockAuction = async () => {
+    if (!window.confirm("Are you sure you want to lock this auction? This will end it immediately and declare the current highest bidder as the winner.")) return;
+    try {
+      await api.put(`/auctions/${id}/close`);
+      setSuccess("Auction locked successfully.");
+      fetchAuction(); // Refresh auction state
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Failed to lock auction");
+    }
+  };
 
   if (!auction) {
     return (
@@ -917,11 +986,15 @@ export const AuctionDetailPage = () => {
 
           <div className="lg:col-span-2 space-y-6">
             {!isEnded && (
-              <VideoStream
-                auctionId={id}
-                isSeller={true}
-                sellerName={auction.seller_name}
-              />
+              <>
+                <VideoStream
+                  auctionId={id}
+                  isBroadcaster={isMediator}
+                  broadcasterName={auction.seller_name}
+                />
+                <LiveChat auctionId={id} />
+                <PrivateChat auctionId={id} />
+              </>
             )}
 
             <div className="bg-white border border-ink/10 p-8 shadow-xl relative overflow-hidden">
@@ -1142,8 +1215,10 @@ export const AuctionDetailPage = () => {
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* LEFT COLUMN: Media & Chat (Span 7) */}
+        <div className="lg:col-span-7 space-y-6">
           <div className="flex items-center gap-3">
             <span
               className={`px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-bold ${
@@ -1161,22 +1236,18 @@ export const AuctionDetailPage = () => {
                 Anti-Snipe
               </span>
             )}
-            {mediatorPresent && (
-              <span className="flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold text-blue-600 border border-blue-200 px-2 py-0.5 bg-blue-50">
-                <Shield className="w-3 h-3" />
-                Mediator Present
-              </span>
-            )}
           </div>
 
-          <h1 className="text-6xl font-serif leading-[1.1] tracking-tight">
-            {auction.title}
-          </h1>
+          <VideoStream
+            auctionId={id}
+            isBroadcaster={isMediator}
+            broadcasterName={auction.seller_name}
+          />
 
           {imagePreview && (
             <div
               onClick={() => setIsModalOpen(true)}
-              className="relative group aspect-video bg-paper border border-ink/5 overflow-hidden shadow-sm cursor-zoom-in"
+              className="relative group aspect-video bg-paper border border-ink/5 overflow-hidden shadow-sm cursor-zoom-in mt-6"
             >
               <img
                 src={imagePreview}
@@ -1188,50 +1259,26 @@ export const AuctionDetailPage = () => {
               </div>
             </div>
           )}
+        </div>
 
-          <p className="text-xl text-ink/70 font-light leading-relaxed border-l-4 border-gold/20 pl-8 whitespace-pre-wrap">
-            {auction.description}
-          </p>
-
+        {/* RIGHT COLUMN: Info & Bidding (Span 5) */}
+        <div className="lg:col-span-5 space-y-6">
           {!isEnded && (
-            <div className="p-5 bg-amber-50/50 border border-amber-200/50 flex items-start gap-4">
-              <Shield className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[10px] uppercase tracking-widest font-bold text-amber-700 mb-1">
-                  Bid-Snipe Protection Enabled
-                </p>
-                <p className="text-xs text-amber-600 font-light leading-relaxed">
-                  This auction uses anti-sniping technology. Any bid placed
-                  within the last <strong>3 minutes</strong> automatically
-                  extends the auction by <strong>3 minutes</strong>, giving all
-                  bidders a fair chance to respond. This prevents last-second
-                  sniping.
-                </p>
-              </div>
+            <div className="mb-6">
+              <LiveChat auctionId={id} />
             </div>
           )}
 
-          <div className="flex items-center gap-4 p-5 border border-ink/8 bg-white/60">
-            <div className="w-10 h-10 rounded-full bg-paper flex items-center justify-center text-gold border border-ink/5">
-              <UserPlus className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-ink/40 font-bold">
-                Curated By
-              </p>
-              <p className="font-serif text-lg">{auction.seller_name}</p>
-            </div>
-          </div>
-        </div>
+          <h1 className="text-4xl font-serif leading-[1.1] tracking-tight">
+            {auction.title}
+          </h1>
 
-        <div className="lg:col-span-1 space-y-6">
-          <VideoStream
-            auctionId={id}
-            isSeller={false}
-            sellerName={auction.seller_name}
-          />
+          <p className="text-md text-ink/70 font-light leading-relaxed border-l-2 border-gold/20 pl-4 whitespace-pre-wrap">
+            {auction.description}
+          </p>
 
-          <div className="bg-white border border-ink/10 p-8 shadow-2xl relative overflow-hidden">
+
+          <div className="bg-white border border-ink/10 p-6 shadow-2xl relative overflow-hidden mt-6">
             <div className="absolute top-0 left-0 w-1 h-full bg-gold" />
 
             <div className="mb-6">
@@ -1331,10 +1378,58 @@ export const AuctionDetailPage = () => {
                   {bidLoading ? "Placing Bid…" : "Place Bid"}
                 </button>
 
-                <p className="text-[9px] text-ink/30 text-center leading-relaxed">
+                <p className="text-[9px] text-ink/30 text-center leading-relaxed mt-4">
                   All bids are binding. Anti-snipe protection applies.
                 </p>
               </form>
+            )}
+
+            {!isEnded && isBuyer && (
+              <div className="mt-8 pt-6 border-t border-ink/10">
+                <h4 className="text-[10px] uppercase tracking-widest font-bold mb-4 flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5 text-gold" /> Auto-Bid / Proxy Limit
+                </h4>
+                {activeProxyBid ? (
+                  <div className="bg-green-50 border border-green-200 p-4">
+                    <p className="text-xs font-bold text-green-800 mb-2">Auto-bidding is active.</p>
+                    <p className="text-[10px] text-green-700 uppercase tracking-widest mb-4">Max Limit: ${Number(activeProxyBid).toLocaleString()}</p>
+                    <button 
+                      onClick={handleRemoveProxyBid}
+                      disabled={proxyLoading}
+                      className="text-[10px] uppercase font-bold text-red-600 hover:text-red-700"
+                    >
+                      {proxyLoading ? "Removing..." : "Remove Limit"}
+                    </button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSetProxyBid} className="space-y-3">
+                    <p className="text-xs text-ink/50 mb-2 leading-relaxed">
+                      Set your maximum limit. The system will automatically bid the minimum amount required to keep you in the lead, up to your limit.
+                    </p>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30">$</span>
+                        <input
+                          type="number"
+                          value={proxyBidLimit}
+                          onChange={(e) => setProxyBidLimit(e.target.value)}
+                          className="w-full border border-ink/10 pl-8 pr-3 py-3 font-mono text-sm outline-none focus:border-gold"
+                          placeholder="Max Amount"
+                          min={minBid}
+                          required
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={proxyLoading}
+                        className="px-4 bg-ink text-white text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition"
+                      >
+                        {proxyLoading ? "..." : "Set"}
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             )}
 
             {!user && !isEnded && (
