@@ -68,7 +68,7 @@ export const PrivateChat = ({ auctionId }) => {
           <Lock className="w-3.5 h-3.5" />
           Private Coordination Chat
         </h3>
-        <p className="text-[9px] text-amber-700/70 uppercase tracking-widest mt-1">Only visible to Seller & Mediator</p>
+        <p className="text-[9px] text-amber-700/70 uppercase tracking-widest mt-1">Only visible to Consignor & Auctioneer</p>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

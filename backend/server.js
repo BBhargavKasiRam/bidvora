@@ -93,12 +93,12 @@ io.on("connection", (socket) => {
   // ── Live Chat Relay ──
   socket.on("send-chat-message", ({ auctionId, messageData }) => {
     // messageData: { senderId, senderName, text, timestamp }
-    io.to(`auction:${String(auctionId)}`).emit("receive-chat-message", messageData);
+    socket.to(`auction:${String(auctionId)}`).emit("receive-chat-message", messageData);
   });
 
   // ── Mediator Private Chat Relay ──
   socket.on("send-mediator-message", ({ auctionId, messageData }) => {
-    io.to(`auction:${String(auctionId)}`).emit("receive-mediator-message", messageData);
+    socket.to(`auction:${String(auctionId)}`).emit("receive-mediator-message", messageData);
   });
 
   // Anti-snipe timer extension relay

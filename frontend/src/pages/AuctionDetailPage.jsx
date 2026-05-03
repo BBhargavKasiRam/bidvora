@@ -1266,8 +1266,9 @@ export const AuctionDetailPage = () => {
         {/* RIGHT COLUMN: Info & Bidding (Span 5) */}
         <div className="lg:col-span-5 space-y-6">
           {!isEnded && (
-            <div className="mb-6">
+            <div className="mb-6 space-y-6">
               <LiveChat auctionId={id} />
+              {(isConsignor || isAuctioneer) && <PrivateChat auctionId={id} />}
             </div>
           )}
 
