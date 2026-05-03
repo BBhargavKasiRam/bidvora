@@ -25,7 +25,7 @@ exports.register = async (req, res) => {
     let { name, email, password, role } = req.body;
     email = email.trim().toLowerCase().replace(/\s+/g, "");
 
-    const validRoles = ['buyer', 'seller', 'mediator'];
+    const validRoles = ['buyer', 'consignor', 'auctioneer'];
     if (role && !validRoles.includes(role)) {
       return res.status(400).json({ message: "Invalid role specified" });
     }

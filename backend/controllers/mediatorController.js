@@ -2,10 +2,10 @@ const db = require("../config/db");
 
 // Verify mediator middleware logic (could be moved to middleware/authMiddleware.js, but kept simple here)
 const verifyMediator = (req, res, next) => {
-  if (req.user && req.user.role === 'mediator') {
+  if (req.user && req.user.role === 'auctioneer') {
     next();
   } else {
-    res.status(403).json({ message: "Forbidden: Mediator access required." });
+    res.status(403).json({ message: "Forbidden: Auctioneer access required." });
   }
 };
 
