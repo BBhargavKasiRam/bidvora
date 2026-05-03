@@ -175,6 +175,9 @@ io.on("connection", (socket) => {
         delete broadcasters[auctionId];
         io.to(`auction:${auctionId}`).emit("broadcast-ended");
         console.log(`Broadcaster for auction ${auctionId} disconnected`);
+      } else {
+        // Notify the broadcaster that a viewer disconnected
+        io.to(broadcasterId).emit("viewer-disconnected", { viewerId: socket.id });
       }
     }
     console.log("Socket disconnected:", socket.id);

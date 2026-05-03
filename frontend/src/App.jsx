@@ -12,6 +12,8 @@ import { CreateAuctionPage } from "./pages/CreateAuctionPage";
 import { AuctionDetailPage } from "./pages/AuctionDetailPage";
 import { MyAuctionsPage } from "./pages/MyAuctionsPage";
 import { MediatorDashboardPage } from "./pages/MediatorDashboardPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 
 import { Gavel } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
@@ -63,6 +65,8 @@ export default function App() {
               <Route path="/browse" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/create" element={<CreateAuctionPage />} />
               <Route path="/my-auctions" element={<MyAuctionsPage />} />
               <Route path="/auction/:id" element={<AuctionDetailPage />} />

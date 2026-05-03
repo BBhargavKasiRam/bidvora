@@ -10,6 +10,8 @@ const {
   checkLoginEmail,
   checkRegisterEmail,
   updateProfile,
+  forgotPassword,
+  resetPassword
 } = require("../controllers/authController");
 
 // Multer memory storage
@@ -21,5 +23,7 @@ router.post("/login", login);
 router.post("/check-login-email", checkLoginEmail);
 router.post("/check-register-email", checkRegisterEmail);
 router.put("/profile", authMiddleware, upload.single("profile_image"), updateProfile);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 module.exports = router;

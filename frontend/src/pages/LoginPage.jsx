@@ -186,6 +186,14 @@ export const LoginPage = () => {
                   }}
                   className="w-full border-b border-ink/10 py-5 text-xl outline-none"
                 />
+                <div className="mt-4 text-right">
+                  <Link
+                    to="/forgot-password"
+                    className="text-[10px] uppercase tracking-widest text-ink/60 hover:text-gold transition-colors font-bold"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
               </div>
             )}
           </div>

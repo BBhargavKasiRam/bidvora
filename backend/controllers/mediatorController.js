@@ -13,16 +13,16 @@ const verifyMediator = (req, res, next) => {
 exports.getAuctions = (req, res) => {
   const query = `
     SELECT 
-      a.id, a.title, a.current_price, a.status, a.end_time,
+      a.id, a.title, a.current_price, a.status, a.end_time, a.mediator_status, a.mediator_commission,
       u.name as seller_name,
       (SELECT COUNT(*) FROM mediator_actions ma WHERE ma.auction_id = a.id AND ma.action_type = 'flag_auction') as flag_count
     FROM auctions a
     JOIN users u ON a.seller_id = u.id
-    WHERE a.status = 'active'
+    WHERE a.status = 'active' AND a.mediator_id = ?
     ORDER BY flag_count DESC, a.created_at DESC
   `;
 
-  db.query(query, (err, results) => {
+  db.query(query, [req.user.id], (err, results) => {
     if (err) {
       console.error("Error fetching auctions for mediator:", err);
       return res.status(500).json({ message: "Server error fetching auctions" });

@@ -302,6 +302,13 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
         const pc = peerConnections.current[senderId];
         if (pc && candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
       });
+
+      socket.on("viewer-disconnected", ({ viewerId }) => {
+        if (peerConnections.current[viewerId]) {
+          peerConnections.current[viewerId].close();
+          delete peerConnections.current[viewerId];
+        }
+      });
     } else {
       socket.on("offer", async ({ offer, senderId }) => {
         const pc = new RTCPeerConnection(ICE_SERVERS);
@@ -346,6 +353,7 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
       socket.off("offer");
       socket.off("answer");
       socket.off("ice-candidate");
+      socket.off("viewer-disconnected");
     };
   }, [isBroadcaster, auctionId]);
 
@@ -432,7 +440,7 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
 
         {isBroadcasting ? (
           <div className="space-y-3">
-            <div className="relative bg-ink aspect-video overflow-hidden group">
+            <div className="relative bg-ink aspect-video overflow-hidden group rounded-lg shadow-inner w-full max-w-full">
               <video
                 ref={localVideoCallbackRef}
                 autoPlay
@@ -503,7 +511,7 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
       {broadcasterPresent || isWatching ? (
         <div className="space-y-3">
           {isWatching ? (
-            <div className="relative bg-ink aspect-video overflow-hidden group">
+            <div className="relative bg-ink aspect-video overflow-hidden group rounded-lg shadow-inner w-full max-w-full">
               <video
                 ref={remoteVideoRef}
                 autoPlay

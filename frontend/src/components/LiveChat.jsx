@@ -10,16 +10,46 @@ export const LiveChat = ({ auctionId }) => {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    // Fetch chat history
+    api.get(`/chat/${auctionId}`)
+      .then((data) => {
+        if (data && data.messages) {
+          const formattedMessages = data.messages.map(m => ({
+            id: m.id,
+            senderId: m.user_id,
+            senderName: m.user_name || (m.is_system_message ? "System" : "Unknown"),
+            text: m.message,
+            timestamp: m.created_at,
+            isSystem: m.is_system_message
+          }));
+          setMessages(formattedMessages);
+        }
+      })
+      .catch(console.error);
+
     const socket = getSocket();
 
-    socket.on("receive-chat-message", (messageData) => {
-      setMessages((prev) => [...prev, messageData]);
+    socket.on("newChatMessage", (m) => {
+      const formattedMessage = {
+        id: m.id,
+        senderId: m.user_id,
+        senderName: m.user_name || (m.is_system_message ? "System" : "Unknown"),
+        text: m.message,
+        timestamp: m.created_at,
+        isSystem: m.is_system_message
+      };
+      setMessages((prev) => [...prev, formattedMessage]);
+    });
+
+    socket.on("chatError", ({ message }) => {
+      alert(message);
     });
 
     return () => {
-      socket.off("receive-chat-message");
+      socket.off("newChatMessage");
+      socket.off("chatError");
     };
-  }, []);
+  }, [auctionId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,21 +59,19 @@ export const LiveChat = ({ auctionId }) => {
     e.preventDefault();
     if (!inputText.trim() || !user) return;
 
-    const messageData = {
-      id: Date.now() + Math.random(),
-      senderId: user.id,
-      senderName: user.name,
-      text: inputText.trim(),
-      timestamp: new Date().toISOString()
-    };
-
-    getSocket().emit("send-chat-message", { auctionId, messageData });
-    setMessages((prev) => [...prev, messageData]);
+    getSocket().emit("sendChatMessage", { 
+      auctionId, 
+      userId: user.id, 
+      message: inputText.trim(), 
+      isSystemMessage: false, 
+      user 
+    });
+    
     setInputText("");
   };
 
   return (
-    <div className="flex flex-col h-[500px] border border-ink/10 bg-white">
+    <div className="flex flex-col h-full min-h-[300px] max-h-[500px] border border-ink/10 bg-white">
       <div className="p-4 border-b border-ink/10 bg-paper/50">
         <h3 className="text-xs uppercase tracking-widest font-bold flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
@@ -53,9 +81,9 @@ export const LiveChat = ({ auctionId }) => {
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg) => (
-          <div key={msg.id} className="text-sm">
-            <span className="font-bold text-ink mr-2">{msg.senderName}</span>
-            <span className="text-ink/80">{msg.text}</span>
+          <div key={msg.id} className={`text-sm ${msg.isSystem ? 'text-center italic text-ink/50 text-xs my-2' : ''}`}>
+            {!msg.isSystem && <span className="font-bold text-ink mr-2">{msg.senderName}</span>}
+            <span className={msg.isSystem ? '' : 'text-ink/80'}>{msg.text}</span>
           </div>
         ))}
         <div ref={messagesEndRef} />

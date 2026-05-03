@@ -3,6 +3,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
+const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 
 const uploadToCloudinary = (fileBuffer) => {
   return new Promise((resolve, reject) => {
@@ -195,4 +197,97 @@ exports.updateProfile = async (req, res) => {
     console.error("PROFILE UPDATE ERROR:", err);
     res.status(500).json({ message: "Profile update failed" });
   }
+};
+
+// 🔥 FORGOT PASSWORD
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: "Email is required" });
+
+  db.query("SELECT id, name FROM users WHERE email = ?", [email], async (err, results) => {
+    if (err) return res.status(500).json({ message: "Server error" });
+    if (results.length === 0) return res.status(404).json({ message: "Email not found" });
+
+    const user = results[0];
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = await bcrypt.hash(resetToken, 10);
+    // Token expires in 1 hour
+    const expires = new Date(Date.now() + 3600000);
+
+    db.query(
+      "UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?",
+      [hashedToken, expires, user.id],
+      async (err) => {
+        if (err) return res.status(500).json({ message: "Server error" });
+
+        // Send email
+        const transporter = nodemailer.createTransport({
+          host: "smtp.gmail.com",
+          port: 587,
+          secure: false, // true for 465, false for other ports
+          auth: {
+            user: process.env.EMAIL_USER || "noreply.bidvora@gmail.com", 
+            pass: process.env.EMAIL_PASS || "your-app-password" 
+          }
+        });
+
+        // Use ethereal if no env variables set for testing
+        // You might want to use a real email service in production
+        const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${resetToken}&email=${email}`;
+        
+        try {
+          await transporter.sendMail({
+            from: '"Bidvora Support" <support@bidvora.com>',
+            to: email,
+            subject: "Password Reset Request",
+            html: `<p>Hi ${user.name},</p><p>You requested a password reset. Click the link below to reset your password:</p><a href="${resetUrl}">Reset Password</a><p>This link will expire in 1 hour.</p>`
+          });
+          res.json({ message: "Password reset link sent to your email" });
+        } catch (emailErr) {
+          console.error("Email send error:", emailErr);
+          // For demo/development purposes if email fails to send, return the token in response
+          res.json({ message: "Email could not be sent. If in dev mode, use this link: " + resetUrl });
+        }
+      }
+    );
+  });
+};
+
+// 🔥 RESET PASSWORD
+exports.resetPassword = async (req, res) => {
+  const { email, token, newPassword } = req.body;
+  if (!email || !token || !newPassword) return res.status(400).json({ message: "All fields are required" });
+
+  db.query(
+    "SELECT id, password_reset_token, password_reset_expires FROM users WHERE email = ?",
+    [email],
+    async (err, results) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+      if (results.length === 0) return res.status(400).json({ message: "Invalid request" });
+
+      const user = results[0];
+      
+      if (!user.password_reset_token || !user.password_reset_expires) {
+         return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      if (new Date() > new Date(user.password_reset_expires)) {
+        return res.status(400).json({ message: "Reset token has expired" });
+      }
+
+      const isValidToken = await bcrypt.compare(token, user.password_reset_token);
+      if (!isValidToken) return res.status(400).json({ message: "Invalid reset token" });
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      db.query(
+        "UPDATE users SET password = ?, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?",
+        [hashedPassword, user.id],
+        (err) => {
+          if (err) return res.status(500).json({ message: "Failed to reset password" });
+          res.json({ message: "Password reset successfully" });
+        }
+      );
+    }
+  );
 };
