@@ -29,7 +29,8 @@ import {
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { getSocket } from "../lib/socket";
-import { ChatPanel } from "../components/ChatPanel";
+import { LiveChat } from "../components/LiveChat";
+import { PrivateChat } from "../components/PrivateChat";
 
 // ─── Anti-snipe Banner ────────────────────────────────────────────────────────
 const AntiSnipeBanner = ({ wasExtended, extensionMinutes }) => {
@@ -578,6 +579,11 @@ export const AuctionDetailPage = () => {
   const [antiSnipeData, setAntiSnipeData] = useState(null);
   const [liveBids, setLiveBids] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // Proxy Bidding
+  const [proxyBidLimit, setProxyBidLimit] = useState("");
+  const [activeProxyBid, setActiveProxyBid] = useState(null);
+  const [proxyLoading, setProxyLoading] = useState(false);
 
   const fetchAuction = useCallback(async () => {
     try {
@@ -643,21 +649,12 @@ export const AuctionDetailPage = () => {
       setTimeout(() => setAntiSnipeData(null), 10000);
     });
 
-    socket.on("mediatorPresence", ({ isPresent }) => {
-      setMediatorPresent(isPresent);
-    });
-
-    if (user?.role === 'mediator') {
-      socket.emit("mediatorJoined", { auctionId: id });
-    }
-
     return () => {
-      socket.emit("leaveAuction", id);
+      socket.emit("leaveAuction", String(id));
       socket.off("newBid");
       socket.off("timerExtended");
-      socket.off("mediatorPresence");
     };
-  }, [id, user]);
+  }, [id]);
 
   const handleUpdate = async () => {
     setError("");
@@ -899,12 +896,6 @@ export const AuctionDetailPage = () => {
               <span className="text-[10px] text-ink/40 font-mono uppercase tracking-widest">
                 Lot #{auction.id?.toString().padStart(4, "0")}
               </span>
-              {mediatorPresent && (
-                <span className="flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold text-blue-600 border border-blue-200 px-2 py-0.5 bg-blue-50">
-                  <Shield className="w-3 h-3" />
-                  Mediator Present
-                </span>
-              )}
             </div>
 
             {isEditing ? (
@@ -1156,20 +1147,15 @@ export const AuctionDetailPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-16">
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <History className="w-5 h-5 text-gold" />
-              <h2 className="text-2xl font-serif">Bid History</h2>
-              <span className="text-[10px] uppercase tracking-widest text-ink/40 font-bold ml-2">
-                {liveBids.length} bids
-              </span>
-            </div>
-            <BidHistory bids={liveBids} />
+        <div className="mt-16">
+          <div className="flex items-center gap-3 mb-6">
+            <History className="w-5 h-5 text-gold" />
+            <h2 className="text-2xl font-serif">Bid History</h2>
+            <span className="text-[10px] uppercase tracking-widest text-ink/40 font-bold ml-2">
+              {liveBids.length} bids
+            </span>
           </div>
-          <div className="h-[500px]">
-             <ChatPanel auctionId={id} socket={getSocket()} sellerId={auction.seller_id} />
-          </div>
+          <BidHistory bids={liveBids} />
         </div>
       </div>
     );
@@ -1235,6 +1221,14 @@ export const AuctionDetailPage = () => {
                 <Shield className="w-3 h-3" />
                 Anti-Snipe
               </span>
+            )}
+            {isMediator && !isEnded && (
+              <button 
+                onClick={handleLockAuction}
+                className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-red-600 text-white text-[10px] uppercase tracking-widest font-bold hover:bg-red-700 transition"
+              >
+                <Gavel className="w-3.5 h-3.5" /> Lock Auction
+              </button>
             )}
           </div>
 
@@ -1488,20 +1482,15 @@ export const AuctionDetailPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-16 pt-12 border-t border-ink/5">
-        <div>
-          <div className="flex items-center gap-3 mb-8">
-            <History className="w-5 h-5 text-gold" />
-            <h2 className="text-3xl font-serif">Bid History</h2>
-            <span className="text-[10px] uppercase tracking-widest text-ink/40 font-bold ml-2 mt-1">
-              {liveBids.length} bids total
-            </span>
-          </div>
-          <BidHistory bids={liveBids} />
+      <div className="mt-16 pt-12 border-t border-ink/5">
+        <div className="flex items-center gap-3 mb-8">
+          <History className="w-5 h-5 text-gold" />
+          <h2 className="text-3xl font-serif">Bid History</h2>
+          <span className="text-[10px] uppercase tracking-widest text-ink/40 font-bold ml-2 mt-1">
+            {liveBids.length} bids total
+          </span>
         </div>
-        <div className="h-[500px]">
-           <ChatPanel auctionId={id} socket={getSocket()} sellerId={auction.seller_id} />
-        </div>
+        <BidHistory bids={liveBids} />
       </div>
     </div>
   );
