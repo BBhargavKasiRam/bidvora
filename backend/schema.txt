@@ -9,7 +9,7 @@ CREATE TABLE users (
   name VARCHAR(100) NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('buyer','seller') NOT NULL,
+  role ENUM('buyer','seller','mediator') NOT NULL,
   profile_image TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -69,3 +69,41 @@ CREATE TABLE media (
 
 ALTER TABLE auctions ADD image TEXT;
 ALTER TABLE users ADD profile_image TEXT;
+
+-- CHAT MESSAGES
+CREATE TABLE chat_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  auction_id INT NOT NULL,
+  user_id INT, -- NULL if system message
+  message TEXT NOT NULL,
+  is_system_message BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- MEDIATOR ACTIONS
+CREATE TABLE mediator_actions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  auction_id INT NOT NULL,
+  mediator_id INT NOT NULL,
+  action_type ENUM('flag_auction', 'mute_user', 'resolve_dispute', 'delete_message', 'system_warning') NOT NULL,
+  target_user_id INT, -- If applicable
+  note TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE,
+  FOREIGN KEY (mediator_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- MUTED USERS
+CREATE TABLE muted_users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  auction_id INT NOT NULL,
+  user_id INT NOT NULL,
+  muted_by INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (auction_id) REFERENCES auctions(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (muted_by) REFERENCES users(id) ON DELETE CASCADE
+);
