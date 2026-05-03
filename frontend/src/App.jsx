@@ -11,6 +11,7 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { CreateAuctionPage } from "./pages/CreateAuctionPage";
 import { AuctionDetailPage } from "./pages/AuctionDetailPage";
 import { MyAuctionsPage } from "./pages/MyAuctionsPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { MediatorDashboardPage } from "./pages/MediatorDashboardPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
@@ -38,7 +39,7 @@ export default function App() {
                   ) : user?.role === "mediator" ? (
                     <MediatorDashboardPage />
                   ) : (
-                    <HomePage />
+                    <DashboardPage />
                   )
                 }
               />

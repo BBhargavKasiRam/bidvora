@@ -15,18 +15,18 @@ export const Navbar = () => {
       </Link>
       
       <div className="flex items-center gap-8">
-        {!user || user.role !== 'mediator' ? (
-          <Link to="/browse" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Gallery</Link>
-        ) : null}
-        
-        {user ? (
+        {/* Navigation Links */}
+        {!user ? (
+          <Link to="/gallery" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Gallery</Link>
+        ) : user.role === 'mediator' ? (
+          <Link to="/mediator" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Mediator Dashboard</Link>
+        ) : (
           <>
-            {user.role === 'buyer' && (
-              <Link to="/orders" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Orders</Link>
-            )}
+            <Link to="/" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Dashboard</Link>
+            <Link to="/gallery" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Gallery</Link>
+            <Link to="/orders" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Orders</Link>
             {user.role === 'seller' && (
               <>
-                <Link to="/orders" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Orders</Link>
                 <Link to="/my-auctions" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">My Auctions</Link>
                 <Link to="/create" className="flex items-center gap-2 text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">
                   <PlusCircle className="w-4 h-4" />
@@ -34,38 +34,34 @@ export const Navbar = () => {
                 </Link>
               </>
             )}
-            {user.role === 'mediator' && (
-
-              <Link to="/mediator" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Mediator Dashboard</Link>
-
-            )}
-            <div className="flex items-center gap-4 pl-8 border-l border-ink/10">
-              <Link to="/profile" className="flex items-center gap-3 group">
-                <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-gold transition-colors">
-
-                    {user.role === 'seller' ? 'Seller' : user.role === 'mediator' ? 'Mediator' : 'Buyer'}
-
-                  </p>
-                  <p className="text-xs font-bold group-hover:text-gold transition-colors">{user.name}</p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-ink text-paper flex items-center justify-center font-serif text-lg overflow-hidden border-2 border-transparent group-hover:border-gold transition-colors shadow-sm">
-                  {user.profile_image ? (
-                    <img src={user.profile_image} alt={user.name} className="w-full h-full object-cover" />
-                  ) : (
-                    user.name?.charAt(0)
-                  )}
-                </div>
-              </Link>
-              <button 
-                onClick={() => { logout(); navigate("/login"); }}
-                className="p-2 hover:bg-ink/5 rounded-full transition-colors"
-                title="Logout"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
           </>
+        )}
+
+        {user ? (
+          <div className="flex items-center gap-4 pl-8 border-l border-ink/10">
+            <Link to="/profile" className="flex items-center gap-3 group">
+              <div className="text-right">
+                <p className="text-[10px] uppercase tracking-widest text-ink/40 group-hover:text-gold transition-colors">
+                  {user.role === 'seller' ? 'Seller' : user.role === 'mediator' ? 'Mediator' : 'Buyer'}
+                </p>
+                <p className="text-xs font-bold group-hover:text-gold transition-colors">{user.name}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-ink text-paper flex items-center justify-center font-serif text-lg overflow-hidden border-2 border-transparent group-hover:border-gold transition-colors shadow-sm">
+                {user.profile_image ? (
+                  <img src={user.profile_image} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  user.name?.charAt(0)
+                )}
+              </div>
+            </Link>
+            <button 
+              onClick={() => { logout(); navigate("/login"); }}
+              className="p-2 hover:bg-ink/5 rounded-full transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
         ) : (
           <div className="flex items-center gap-4">
             <Link to="/login" className="flex items-center gap-2 text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">
