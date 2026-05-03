@@ -43,9 +43,16 @@ export default function App() {
                 }
               />
 
-              {/* Mediator Routes */}
               <Route
                 path="/mediator-studio"
+                element={<MediatorDashboardPage />}
+              />
+              <Route
+                path="/mediator-dashboard"
+                element={<MediatorDashboardPage />}
+              />
+              <Route
+                path="/mediator/dashboard"
                 element={<MediatorDashboardPage />}
               />
 

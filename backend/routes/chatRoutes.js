@@ -4,6 +4,6 @@ const chatController = require("../controllers/chatController");
 const authenticateJWT = require("../middleware/authMiddleware");
 
 // Get chat history for an auction
-router.get("/:auctionId", authenticateJWT, chatController.getChatHistory);
+router.get("/:auctionId", chatController.getChatHistory);
 
 module.exports = router;

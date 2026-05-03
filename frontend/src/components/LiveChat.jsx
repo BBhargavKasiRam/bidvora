@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { getSocket } from "../lib/socket";
 import { useAuth } from "../context/AuthContext";
 import { Send } from "lucide-react";
+import { api } from "../lib/api";
 
 export const LiveChat = ({ auctionId }) => {
   const { user } = useAuth();
