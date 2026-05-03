@@ -106,7 +106,7 @@ export const RegisterPage = () => {
     }
   };
 
-  const handleGoogleSign up = async () => {
+  const handleGoogleSignup = async () => {
     if (googleLoading) return;
     try {
       setGoogleLoading(true);
@@ -159,7 +159,7 @@ export const RegisterPage = () => {
 
         <div className="space-y-6">
           <button
-            onClick={handleGoogleSign up}
+            onClick={handleGoogleSignup}
             disabled={googleLoading}
             className="w-full flex items-center justify-center gap-3 py-4 border border-ink/10 hover:bg-paper transition-all group"
           >

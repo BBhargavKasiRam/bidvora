@@ -27,6 +27,13 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 };
+app.use(express.json());
+
+// Firebase Popup Support
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  next();
+});
 
 const io = new Server(server, {
   cors: {
