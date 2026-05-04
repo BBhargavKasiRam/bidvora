@@ -1,26 +1,70 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { useAuth } from "../context/AuthContext";
-import { BarChart3, TrendingUp, Package, Activity, DollarSign } from "lucide-react";
+import {
+  BarChart3, TrendingUp, Package, Activity,
+  DollarSign, Trophy, ArrowLeft, Gavel, Star
+} from "lucide-react";
 import { api } from "../lib/api";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, AreaChart, Area, Cell
+} from "recharts";
+
+const StatCard = ({ title, value, icon: Icon, accentColor = "bg-gold", delay = 0 }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay }}
+    className="bg-white p-6 border border-ink/10 shadow-sm relative overflow-hidden"
+  >
+    <div className={`absolute top-0 left-0 w-1 h-full ${accentColor}`} />
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="text-[10px] uppercase tracking-widest text-ink/40 font-bold">{title}</h3>
+      <Icon className="w-5 h-5 text-ink/20" />
+    </div>
+    <p className="text-4xl font-serif">{value}</p>
+  </motion.div>
+);
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-ink text-paper px-4 py-3 shadow-xl text-sm">
+        <p className="font-bold mb-1 text-gold">{label}</p>
+        {payload.map((p, i) => (
+          <p key={i} className="text-[11px] uppercase tracking-widest">
+            {p.name}: <span className="font-bold">${Number(p.value).toLocaleString()}</span>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 export const SellerAnalyticsPage = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sellerRating, setSellerRating] = useState(null);
 
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== "consignor") {
+    if (!isAuthenticated || (user?.role !== "consignor" && user?.role !== "seller")) {
       navigate("/");
       return;
     }
 
-    const fetchAnalytics = async () => {
+    const fetchAll = async () => {
       try {
-        const data = await api.get("/auctions/seller-analytics");
+        const [data, ratingData] = await Promise.all([
+          api.get("/auctions/seller-analytics"),
+          api.get(`/reviews/${user.id}`).catch(() => null)
+        ]);
         setAnalytics(data);
+        if (ratingData) setSellerRating(ratingData);
       } catch (err) {
         console.error("Failed to load analytics", err);
       } finally {
@@ -28,7 +72,7 @@ export const SellerAnalyticsPage = () => {
       }
     };
 
-    fetchAnalytics();
+    fetchAll();
   }, [isAuthenticated, user, navigate]);
 
   if (loading) {
@@ -39,61 +83,274 @@ export const SellerAnalyticsPage = () => {
     );
   }
 
+  if (!analytics) {
+    return (
+      <div className="flex items-center justify-center h-[60vh] text-ink/40 font-serif italic text-xl">
+        Failed to load analytics data.
+      </div>
+    );
+  }
+
+  const hasRevenueData = analytics.revenueByMonth && analytics.revenueByMonth.length > 0;
+  const hasTopItems = analytics.topItems && analytics.topItems.length > 0;
+  const winRate = analytics.total_auctions > 0
+    ? Math.round((analytics.total_sold / analytics.total_auctions) * 100)
+    : 0;
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 text-ink">
+      {/* Header */}
       <header className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-serif tracking-tight flex items-center gap-4">
-          <BarChart3 className="w-8 h-8 text-gold" />
-          Analytics Dashboard
-        </h1>
-        <p className="text-ink/50 uppercase tracking-widest text-xs mt-3 font-bold">
-          Performance Overview
-        </p>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-[10px] uppercase tracking-widest text-ink/40 font-bold mb-6 hover:text-gold transition-colors"
+        >
+          <ArrowLeft className="w-3 h-3" />
+          Back
+        </Link>
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-serif tracking-tight flex items-center gap-4">
+              <BarChart3 className="w-8 h-8 text-gold" />
+              Analytics Dashboard
+            </h1>
+            <p className="text-ink/50 uppercase tracking-widest text-xs mt-3 font-bold">
+              Performance Overview · {user?.name}
+            </p>
+          </div>
+
+          {/* Trust Score */}
+          {sellerRating && sellerRating.totalReviews > 0 && (
+            <div className="flex items-center gap-3 px-6 py-4 bg-gold/5 border border-gold/20">
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map(s => (
+                  <Star
+                    key={s}
+                    className={`w-5 h-5 ${s <= Math.round(sellerRating.averageRating) ? "fill-gold text-gold" : "text-ink/10"}`}
+                  />
+                ))}
+              </div>
+              <div>
+                <p className="font-bold text-lg font-serif leading-none">{sellerRating.averageRating}</p>
+                <p className="text-[9px] uppercase tracking-widest text-ink/40 font-bold">
+                  Trust Score · {sellerRating.totalReviews} review{sellerRating.totalReviews !== 1 ? "s" : ""}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        <div className="bg-white p-6 border border-ink/10 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-gold" />
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[10px] uppercase tracking-widest text-ink/40 font-bold">Total Revenue</h3>
-            <DollarSign className="w-5 h-5 text-gold/50" />
-          </div>
-          <p className="text-4xl font-serif">${Number(analytics.total_revenue || 0).toLocaleString()}</p>
-        </div>
-
-        <div className="bg-white p-6 border border-ink/10 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-ink" />
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[10px] uppercase tracking-widest text-ink/40 font-bold">Total Auctions</h3>
-            <Package className="w-5 h-5 text-ink/20" />
-          </div>
-          <p className="text-4xl font-serif">{analytics.total_auctions || 0}</p>
-        </div>
-
-        <div className="bg-white p-6 border border-ink/10 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-green-500" />
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[10px] uppercase tracking-widest text-ink/40 font-bold">Active Listings</h3>
-            <Activity className="w-5 h-5 text-green-500/50" />
-          </div>
-          <p className="text-4xl font-serif">{analytics.active_auctions || 0}</p>
-        </div>
-
-        <div className="bg-white p-6 border border-ink/10 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[10px] uppercase tracking-widest text-ink/40 font-bold">Avg. Sale Price</h3>
-            <TrendingUp className="w-5 h-5 text-amber-500/50" />
-          </div>
-          <p className="text-4xl font-serif">${Number(analytics.average_sale_price || 0).toLocaleString()}</p>
-        </div>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
+        <StatCard
+          title="Total Revenue"
+          value={`$${Number(analytics.total_revenue || 0).toLocaleString()}`}
+          icon={DollarSign}
+          accentColor="bg-gold"
+          delay={0}
+        />
+        <StatCard
+          title="Total Auctions"
+          value={analytics.total_auctions || 0}
+          icon={Package}
+          accentColor="bg-ink"
+          delay={0.05}
+        />
+        <StatCard
+          title="Active Listings"
+          value={analytics.active_auctions || 0}
+          icon={Activity}
+          accentColor="bg-green-500"
+          delay={0.1}
+        />
+        <StatCard
+          title="Avg. Sale Price"
+          value={`$${Number(analytics.average_sale_price || 0).toLocaleString()}`}
+          icon={TrendingUp}
+          accentColor="bg-amber-500"
+          delay={0.15}
+        />
       </div>
 
-      <div className="bg-white p-8 border border-ink/10 shadow-sm text-center py-20">
-        <BarChart3 className="w-16 h-16 text-ink/10 mx-auto mb-4" />
-        <h2 className="text-2xl font-serif mb-2">More insights coming soon</h2>
-        <p className="text-ink/40 text-sm">We are actively developing advanced charting capabilities for sellers.</p>
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white p-6 border border-ink/10 text-center"
+        >
+          <p className="text-[10px] uppercase tracking-widest text-ink/40 font-bold mb-2">Completed Sales</p>
+          <p className="text-3xl font-serif">{analytics.total_sold || 0}</p>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.25 }}
+          className="bg-white p-6 border border-ink/10 text-center"
+        >
+          <p className="text-[10px] uppercase tracking-widest text-ink/40 font-bold mb-2">Win Rate</p>
+          <p className="text-3xl font-serif">{winRate}%</p>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white p-6 border border-ink/10 text-center col-span-2 md:col-span-1"
+        >
+          <p className="text-[10px] uppercase tracking-widest text-ink/40 font-bold mb-2">Trust Score</p>
+          <p className="text-3xl font-serif">
+            {sellerRating?.totalReviews > 0
+              ? `${sellerRating.averageRating} ★`
+              : "No reviews yet"}
+          </p>
+        </motion.div>
       </div>
+
+      {/* Revenue Chart */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+        className="bg-white border border-ink/10 shadow-sm p-8 mb-8"
+      >
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-xl font-serif">Revenue Over Time</h2>
+            <p className="text-[10px] uppercase tracking-widest text-ink/40 font-bold mt-1">Last 6 Months</p>
+          </div>
+          <TrendingUp className="w-5 h-5 text-gold" />
+        </div>
+
+        {hasRevenueData ? (
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={analytics.revenueByMonth} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+              <defs>
+                <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A10" />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 10, fontFamily: "monospace", fill: "#1A1A1A60" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fontFamily: "monospace", fill: "#1A1A1A60" }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v) => `$${Number(v).toLocaleString()}`}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Area
+                type="monotone"
+                dataKey="revenue"
+                name="Revenue"
+                stroke="#C9A84C"
+                strokeWidth={2.5}
+                fill="url(#revenueGradient)"
+                dot={{ fill: "#C9A84C", strokeWidth: 0, r: 4 }}
+                activeDot={{ r: 6, fill: "#C9A84C" }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[280px] flex flex-col items-center justify-center text-ink/30 border border-dashed border-ink/10">
+            <BarChart3 className="w-12 h-12 mb-3" />
+            <p className="text-sm font-serif italic">Revenue data will appear here once auctions end.</p>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Auctions Count Bar Chart */}
+      {hasRevenueData && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white border border-ink/10 shadow-sm p-8 mb-8"
+        >
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-xl font-serif">Auctions Completed</h2>
+              <p className="text-[10px] uppercase tracking-widest text-ink/40 font-bold mt-1">Per Month</p>
+            </div>
+            <Gavel className="w-5 h-5 text-ink/30" />
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={analytics.revenueByMonth} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A10" />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 10, fontFamily: "monospace", fill: "#1A1A1A60" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fontFamily: "monospace", fill: "#1A1A1A60" }}
+                axisLine={false}
+                tickLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="auctions_count" name="Auctions" fill="#1A1A1A" radius={[2, 2, 0, 0]}>
+                {analytics.revenueByMonth.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={index === analytics.revenueByMonth.length - 1 ? "#C9A84C" : "#1A1A1A"}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </motion.div>
+      )}
+
+      {/* Top Items Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45 }}
+        className="bg-white border border-ink/10 shadow-sm p-8"
+      >
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-xl font-serif">Top Performing Items</h2>
+            <p className="text-[10px] uppercase tracking-widest text-ink/40 font-bold mt-1">Highest Sale Prices</p>
+          </div>
+          <Trophy className="w-5 h-5 text-gold" />
+        </div>
+
+        {hasTopItems ? (
+          <div className="divide-y divide-ink/5">
+            {analytics.topItems.map((item, i) => (
+              <div key={i} className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-4">
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${i === 0 ? "bg-gold text-ink" : "bg-ink/5 text-ink/40"}`}>
+                    {i + 1}
+                  </span>
+                  <div>
+                    <p className="font-medium text-sm">{item.title}</p>
+                    <p className="text-[10px] uppercase tracking-widest text-ink/40 font-bold">
+                      {new Date(item.end_time).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-lg font-serif font-bold text-gold">${Number(item.sale_price).toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-ink/30 border border-dashed border-ink/10">
+            <Trophy className="w-10 h-10 mx-auto mb-3" />
+            <p className="text-sm font-serif italic">Top items will appear once your auctions complete.</p>
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 };
