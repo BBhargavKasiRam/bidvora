@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
-import { Clock, ChevronRight, Edit3, Video } from "lucide-react";
+import { Clock, ChevronRight, Edit3, Video, Star } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { api } from "../lib/api";
 
 export const AuctionCard = ({ auction }) => {
   const [timeLeft, setTimeLeft] = useState("");
+  const [sellerRating, setSellerRating] = useState(null);
   const { user } = useAuth();
 
   const isConsignor = user && auction && user.id === auction.seller_id;
@@ -29,6 +31,17 @@ export const AuctionCard = ({ auction }) => {
     }, 1000);
     return () => clearInterval(timer);
   }, [auction.end_time]);
+
+  // Fetch seller trust score
+  useEffect(() => {
+    if (auction?.seller_id) {
+      api.get(`/reviews/${auction.seller_id}`)
+        .then(data => {
+          if (data && data.totalReviews > 0) setSellerRating(data);
+        })
+        .catch(() => {});
+    }
+  }, [auction?.seller_id]);
 
   return (
     <motion.div
@@ -57,9 +70,22 @@ export const AuctionCard = ({ auction }) => {
       )}
 
       <div className="flex justify-between items-start mb-4">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-ink/40">
-          Owner: {auction.seller_name}
-        </span>
+        <div>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-ink/40">
+            Owner: {auction.seller_name}
+          </span>
+          {sellerRating && (
+            <div className="flex items-center gap-1 mt-1">
+              {[1,2,3,4,5].map(s => (
+                <Star
+                  key={s}
+                  className={`w-2.5 h-2.5 ${s <= Math.round(sellerRating.averageRating) ? "fill-gold text-gold" : "text-ink/10"}`}
+                />
+              ))}
+              <span className="text-[9px] text-ink/40 ml-0.5">{sellerRating.averageRating}</span>
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-1 text-gold">
           <Clock className="w-3 h-3" />
           <span className="text-[10px] font-mono font-medium">{timeLeft}</span>
