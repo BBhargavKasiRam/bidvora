@@ -213,3 +213,100 @@ exports.placeBid = (req, res) => {
     }
   );
 };
+
+exports.setProxyBid = (req, res) => {
+  const { auction_id, max_bid_amount } = req.body;
+  const user_id = req.user.id;
+
+  if (!auction_id || !max_bid_amount) {
+    return res.status(400).json({ message: "Auction ID and max bid amount are required" });
+  }
+
+  db.query(
+    `SELECT a.* FROM auctions a WHERE a.id = ?`,
+    [auction_id],
+    (err, result) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+      if (result.length === 0) return res.status(404).json({ message: "Auction not found" });
+
+      const auction = result[0];
+
+      if (new Date(auction.end_time) <= new Date()) {
+        return res.status(400).json({ message: "Auction has ended" });
+      }
+
+      if (auction.seller_id === user_id) {
+        return res.status(403).json({ message: "You cannot place a proxy bid on your own auction." });
+      }
+
+      if (Number(max_bid_amount) <= Number(auction.current_price)) {
+        return res.status(400).json({
+          message: `Max bid must be higher than current price $${Number(auction.current_price).toLocaleString()}`,
+        });
+      }
+
+      // Check if user already has a proxy bid
+      db.query(
+        "SELECT id FROM proxy_bids WHERE auction_id = ? AND user_id = ?",
+        [auction_id, user_id],
+        (err, existingResults) => {
+          if (err) return res.status(500).json({ message: "Server error" });
+
+          if (existingResults.length > 0) {
+            // Update
+            db.query(
+              "UPDATE proxy_bids SET max_bid_amount = ? WHERE id = ?",
+              [max_bid_amount, existingResults[0].id],
+              (err) => {
+                if (err) return res.status(500).json({ message: "Failed to update proxy bid" });
+                res.json({ message: "Proxy bid updated successfully!" });
+              }
+            );
+          } else {
+            // Insert
+            db.query(
+              "INSERT INTO proxy_bids (auction_id, user_id, max_bid_amount) VALUES (?, ?, ?)",
+              [auction_id, user_id, max_bid_amount],
+              (err) => {
+                if (err) return res.status(500).json({ message: "Failed to set proxy bid" });
+                res.json({ message: "Proxy bid set successfully! We will automatically bid for you." });
+              }
+            );
+          }
+        }
+      );
+    }
+  );
+};
+
+exports.getProxyBid = (req, res) => {
+  const { auctionId } = req.params;
+  const userId = req.user.id;
+
+  db.query(
+    "SELECT max_bid_amount FROM proxy_bids WHERE auction_id = ? AND user_id = ?",
+    [auctionId, userId],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+      if (results.length > 0) {
+        res.json({ max_bid_amount: results[0].max_bid_amount });
+      } else {
+        res.json({ max_bid_amount: null });
+      }
+    }
+  );
+};
+
+exports.removeProxyBid = (req, res) => {
+  const { auctionId } = req.params;
+  const userId = req.user.id;
+
+  db.query(
+    "DELETE FROM proxy_bids WHERE auction_id = ? AND user_id = ?",
+    [auctionId, userId],
+    (err) => {
+      if (err) return res.status(500).json({ message: "Server error" });
+      res.json({ message: "Proxy bid removed successfully" });
+    }
+  );
+};
