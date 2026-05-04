@@ -30,34 +30,30 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Invalid role specified" });
     }
 
-    db.query("SELECT id FROM users WHERE email = ?", [email], async (err, result) => {
-      if (err) return res.status(500).json({ message: "Server error" });
-      if (result.length > 0) return res.status(400).json({ message: "Email already registered" });
+    const [existing] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
+    if (existing.length > 0) return res.status(400).json({ message: "Email already registered" });
 
-      const hashed = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 10);
 
-      db.query(
-        "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
-        [name, email, hashed, role || "buyer"],
-        (err) => {
-          if (err) return res.status(500).json({ message: "Server error" });
-          res.json({ message: "User registered successfully" });
-        }
-      );
-    });
+    await db.query(
+      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
+      [name, email, hashed, role || "buyer"]
+    );
+    
+    res.json({ message: "User registered successfully" });
   } catch (err) {
+    console.error("Register error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// 🔐 LOGIN (Optimized & Role Included)
-exports.login = (req, res) => {
-  let { email, password } = req.body;
-  email = email.trim().toLowerCase().replace(/\s+/g, "");
+// 🔐 LOGIN
+exports.login = async (req, res) => {
+  try {
+    let { email, password } = req.body;
+    email = email.trim().toLowerCase().replace(/\s+/g, "");
 
-  db.query("SELECT * FROM users WHERE email = ?", [email], async (err, results) => {
-    if (err) return res.status(500).json({ message: "Server error" });
-    
+    const [results] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
     const user = results[0];
 
     if (!user) {
@@ -87,27 +83,29 @@ exports.login = (req, res) => {
       token,
       user: userWithoutPassword,
     });
-  });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 // 🔐 GOOGLE LOGIN
 exports.googleLogin = async (req, res) => {
-  let { email, name, profile_image, uid } = req.body;
-  email = email.trim().toLowerCase().replace(/\s+/g, "");
+  try {
+    let { email, name, profile_image, uid } = req.body;
+    email = email.trim().toLowerCase().replace(/\s+/g, "");
 
-  db.query("SELECT * FROM users WHERE email = ?", [email], async (err, results) => {
-    if (err) return res.status(500).json({ message: "Server error" });
-
+    const [results] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
     let user = results[0];
     const SECRET = process.env.JWT_SECRET || "secret";
 
     if (user) {
       // Existing user: Update profile image if they don't have one
       if (!user.profile_image && profile_image) {
-        db.query("UPDATE users SET profile_image = ?, is_google_user = 1 WHERE id = ?", [profile_image, user.id]);
+        await db.query("UPDATE users SET profile_image = ?, is_google_user = 1 WHERE id = ?", [profile_image, user.id]);
         user.profile_image = profile_image;
       } else {
-        db.query("UPDATE users SET is_google_user = 1 WHERE id = ?", [user.id]);
+        await db.query("UPDATE users SET is_google_user = 1 WHERE id = ?", [user.id]);
       }
 
       const token = jwt.sign(
@@ -120,70 +118,69 @@ exports.googleLogin = async (req, res) => {
       return res.json({ token, user: userWithoutPassword });
     } else {
       // New user: Create account
-      db.query(
+      const [result] = await db.query(
         "INSERT INTO users (name, email, profile_image, role, is_google_user) VALUES (?, ?, ?, ?, ?)",
-        [name, email, profile_image, "buyer", 1],
-        (err, result) => {
-          if (err) {
-             console.error("Google user insert error:", err);
-             return res.status(500).json({ message: "Failed to create account" });
-          }
-          
-          const newId = result.insertId;
-          const token = jwt.sign(
-            { id: newId, role: "buyer" },
-            SECRET,
-            { expiresIn: "1d" }
-          );
-
-          res.json({
-            token,
-            user: { id: newId, name, email, role: "buyer", profile_image }
-          });
-        }
+        [name, email, profile_image, "buyer", 1]
       );
+      
+      const newId = result.insertId;
+      const token = jwt.sign(
+        { id: newId, role: "buyer" },
+        SECRET,
+        { expiresIn: "1d" }
+      );
+
+      res.json({
+        token,
+        user: { id: newId, name, email, role: "buyer", profile_image }
+      });
     }
-  });
+  } catch (err) {
+    console.error("Google Login error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 // 🔥 CHECK REGISTER EMAIL
-exports.checkRegisterEmail = (req, res) => {
+exports.checkRegisterEmail = async (req, res) => {
   try {
     let { email } = req.body;
     if (!email) return res.status(400).json({ message: "Email required" });
     email = email.trim().toLowerCase();
 
-    db.query("SELECT id FROM users WHERE email = ?", [email], (err, result) => {
-      if (err) return res.status(500).json({ message: "Database error" });
-      if (result.length > 0) return res.status(400).json({ message: "Email already registered" });
-      return res.json({ message: "OK" });
-    });
+    const [result] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
+    if (result.length > 0) return res.status(400).json({ message: "Email already registered" });
+    return res.json({ message: "OK" });
   } catch (error) {
+    console.error("Check Register Email error:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
 
 // 🔥 CHECK LOGIN EMAIL
-exports.checkLoginEmail = (req, res) => {
-  let { email } = req.body;
-  if (!email) return res.status(400).json({ message: "Email required" });
-  email = email.trim().toLowerCase().replace(/\s+/g, "");
+exports.checkLoginEmail = async (req, res) => {
+  try {
+    let { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email required" });
+    email = email.trim().toLowerCase().replace(/\s+/g, "");
 
-  db.query("SELECT id FROM users WHERE email = ?", [email], (err, result) => {
-    if (err) return res.status(500).json({ message: "Server error" });
+    const [result] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
     if (result.length === 0) return res.status(400).json({ message: "Email not registered" });
     res.json({ message: "OK" });
-  });
+  } catch (err) {
+    console.error("Check Login Email error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 // 🔐 UPDATE PROFILE
 exports.updateProfile = async (req, res) => {
-  const { name, email, role } = req.body;
-  const userId = req.user.id;
-  
-  if (!name || !email) return res.status(400).json({ message: "Name and email are required" });
-
   try {
+    const { name, email, role } = req.body;
+    const userId = req.user.id;
+    
+    if (!name || !email) return res.status(400).json({ message: "Name and email are required" });
+
     let imageUrl = null;
     if (req.file) {
       if (!req.file.mimetype.startsWith("image/")) return res.status(400).json({ message: "Only image files are allowed" });
@@ -191,42 +188,37 @@ exports.updateProfile = async (req, res) => {
       imageUrl = result.secure_url;
     }
 
-    db.query(
+    const [existing] = await db.query(
       "SELECT id FROM users WHERE email = ? AND id != ?",
-      [email, userId],
-      (err, result) => {
-        if (err) return res.status(500).json({ message: "Server error" });
-        if (result.length > 0) return res.status(400).json({ message: "Email already in use" });
-
-        let sql = "UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?";
-        let params = [name, email, role || "buyer", userId];
-
-        if (imageUrl) {
-          sql = "UPDATE users SET name = ?, email = ?, role = ?, profile_image = ? WHERE id = ?";
-          params = [name, email, role || "buyer", imageUrl, userId];
-        }
-
-        db.query(sql, params, (err) => {
-          if (err) return res.status(500).json({ message: "Server error" });
-          db.query("SELECT id, name, email, role, profile_image FROM users WHERE id = ?", [userId], (err, results) => {
-             if (err) return res.status(500).json({ message: "Server error" });
-             res.json({ message: "Profile updated successfully", user: results[0] });
-          });
-        });
-      }
+      [email, userId]
     );
+    if (existing.length > 0) return res.status(400).json({ message: "Email already in use" });
+
+    let sql = "UPDATE users SET name = ?, email = ?, role = ? WHERE id = ?";
+    let params = [name, email, role || "buyer", userId];
+
+    if (imageUrl) {
+      sql = "UPDATE users SET name = ?, email = ?, role = ?, profile_image = ? WHERE id = ?";
+      params = [name, email, role || "buyer", imageUrl, userId];
+    }
+
+    await db.query(sql, params);
+    
+    const [results] = await db.query("SELECT id, name, email, role, profile_image FROM users WHERE id = ?", [userId]);
+    res.json({ message: "Profile updated successfully", user: results[0] });
   } catch (err) {
+    console.error("Profile update failed:", err);
     res.status(500).json({ message: "Profile update failed" });
   }
 };
 
 // 🔥 FORGOT PASSWORD
 exports.forgotPassword = async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ message: "Email is required" });
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
 
-  db.query("SELECT id, name FROM users WHERE email = ?", [email], async (err, results) => {
-    if (err) return res.status(500).json({ message: "Server error" });
+    const [results] = await db.query("SELECT id, name FROM users WHERE email = ?", [email]);
     if (results.length === 0) return res.status(404).json({ message: "Email not found" });
 
     const user = results[0];
@@ -234,69 +226,70 @@ exports.forgotPassword = async (req, res) => {
     const hashedToken = await bcrypt.hash(resetToken, 10);
     const expires = new Date(Date.now() + 3600000);
 
-    db.query(
+    await db.query(
       "UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?",
-      [hashedToken, expires, user.id],
-      async (err) => {
-        if (err) return res.status(500).json({ message: "Server error" });
-
-        const transporter = nodemailer.createTransport({
-          host: "smtp.gmail.com",
-          port: 587,
-          secure: false,
-          auth: {
-            user: process.env.EMAIL_USER || "noreply.bidvora@gmail.com", 
-            pass: process.env.EMAIL_PASS || "your-app-password" 
-          }
-        });
-
-        const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${resetToken}&email=${email}`;
-        
-        try {
-          await transporter.sendMail({
-            from: '"Bidvora Support" <support@bidvora.com>',
-            to: email,
-            subject: "Password Reset Request",
-            html: `<p>Hi ${user.name},</p><p>You requested a password reset. Click the link below to reset your password:</p><a href="${resetUrl}">Reset Password</a><p>This link will expire in 1 hour.</p>`
-          });
-          res.json({ message: "Password reset link sent to your email" });
-        } catch (emailErr) {
-          res.json({ message: "Email could not be sent. If in dev mode, use this link: " + resetUrl });
-        }
-      }
+      [hashedToken, expires, user.id]
     );
-  });
+
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER || "noreply.bidvora@gmail.com", 
+        pass: process.env.EMAIL_PASS || "your-app-password" 
+      }
+    });
+
+    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${resetToken}&email=${email}`;
+    
+    try {
+      await transporter.sendMail({
+        from: '"Bidvora Support" <support@bidvora.com>',
+        to: email,
+        subject: "Password Reset Request",
+        html: `<p>Hi ${user.name},</p><p>You requested a password reset. Click the link below to reset your password:</p><a href="${resetUrl}">Reset Password</a><p>This link will expire in 1 hour.</p>`
+      });
+      res.json({ message: "Password reset link sent to your email" });
+    } catch (emailErr) {
+      res.json({ message: "Email could not be sent. If in dev mode, use this link: " + resetUrl });
+    }
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 // 🔥 RESET PASSWORD
 exports.resetPassword = async (req, res) => {
-  const { email, token, newPassword } = req.body;
-  if (!email || !token || !newPassword) return res.status(400).json({ message: "All fields are required" });
+  try {
+    const { email, token, newPassword } = req.body;
+    if (!email || !token || !newPassword) return res.status(400).json({ message: "All fields are required" });
 
-  db.query(
-    "SELECT id, password_reset_token, password_reset_expires FROM users WHERE email = ?",
-    [email],
-    async (err, results) => {
-      if (err) return res.status(500).json({ message: "Server error" });
-      if (results.length === 0) return res.status(400).json({ message: "Invalid request" });
+    const [results] = await db.query(
+      "SELECT id, password_reset_token, password_reset_expires FROM users WHERE email = ?",
+      [email]
+    );
+    
+    if (results.length === 0) return res.status(400).json({ message: "Invalid request" });
 
-      const user = results[0];
-      if (!user.password_reset_token || !user.password_reset_expires) return res.status(400).json({ message: "Invalid or expired reset token" });
-      if (new Date() > new Date(user.password_reset_expires)) return res.status(400).json({ message: "Reset token has expired" });
+    const user = results[0];
+    if (!user.password_reset_token || !user.password_reset_expires) return res.status(400).json({ message: "Invalid or expired reset token" });
+    if (new Date() > new Date(user.password_reset_expires)) return res.status(400).json({ message: "Reset token has expired" });
 
-      const isValidToken = await bcrypt.compare(token, user.password_reset_token);
-      if (!isValidToken) return res.status(400).json({ message: "Invalid reset token" });
+    const isValidToken = await bcrypt.compare(token, user.password_reset_token);
+    if (!isValidToken) return res.status(400).json({ message: "Invalid reset token" });
 
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-      db.query(
-        "UPDATE users SET password = ?, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?",
-        [hashedPassword, user.id],
-        (err) => {
-          if (err) return res.status(500).json({ message: "Failed to reset password" });
-          res.json({ message: "Password reset successfully" });
-        }
-      );
-    }
-  );
+    await db.query(
+      "UPDATE users SET password = ?, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?",
+      [hashedPassword, user.id]
+    );
+    
+    res.json({ message: "Password reset successfully" });
+  } catch (err) {
+    console.error("Reset password error:", err);
+    res.status(500).json({ message: "Failed to reset password" });
+  }
 };
