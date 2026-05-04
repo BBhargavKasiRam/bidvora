@@ -1,25 +1,33 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
 import { Navbar } from "./components/Navbar";
-import { HomePage } from "./pages/HomePage";
-import { LandingPage } from "./pages/LandingPage";
-import { ProfilePage } from "./pages/ProfilePage";
-import { OrdersPage } from "./pages/OrdersPage";
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
-import { CreateAuctionPage } from "./pages/CreateAuctionPage";
-import { AuctionDetailPage } from "./pages/AuctionDetailPage";
-import { MyAuctionsPage as MyConsignmentsPage } from "./pages/MyAuctionsPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { AuctioneerDashboardPage } from "./pages/AuctioneerDashboardPage";
-import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
-import { ResetPasswordPage } from "./pages/ResetPasswordPage";
-import { SellerAnalyticsPage } from "./pages/SellerAnalyticsPage";
-import { MediatorDashboardPage } from "./pages/MediatorDashboardPage";
-
-import { Gavel } from "lucide-react";
+import { Gavel, Loader2 } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
+
+// Lazy load pages for performance and to isolate side-effects (like Stripe)
+const HomePage = lazy(() => import("./pages/HomePage").then(m => ({ default: m.HomePage })));
+const LandingPage = lazy(() => import("./pages/LandingPage").then(m => ({ default: m.LandingPage })));
+const ProfilePage = lazy(() => import("./pages/ProfilePage").then(m => ({ default: m.ProfilePage })));
+const OrdersPage = lazy(() => import("./pages/OrdersPage").then(m => ({ default: m.OrdersPage })));
+const LoginPage = lazy(() => import("./pages/LoginPage").then(m => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import("./pages/RegisterPage").then(m => ({ default: m.RegisterPage })));
+const CreateAuctionPage = lazy(() => import("./pages/CreateAuctionPage").then(m => ({ default: m.CreateAuctionPage })));
+const AuctionDetailPage = lazy(() => import("./pages/AuctionDetailPage").then(m => ({ default: m.AuctionDetailPage })));
+const MyConsignmentsPage = lazy(() => import("./pages/MyAuctionsPage").then(m => ({ default: m.MyAuctionsPage })));
+const DashboardPage = lazy(() => import("./pages/DashboardPage").then(m => ({ default: m.DashboardPage })));
+const AuctioneerDashboardPage = lazy(() => import("./pages/AuctioneerDashboardPage").then(m => ({ default: m.AuctioneerDashboardPage })));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage").then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
+const SellerAnalyticsPage = lazy(() => import("./pages/SellerAnalyticsPage").then(m => ({ default: m.SellerAnalyticsPage })));
+const MediatorDashboardPage = lazy(() => import("./pages/MediatorDashboardPage").then(m => ({ default: m.MediatorDashboardPage })));
+
+const PageLoader = () => (
+  <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+    <Loader2 className="w-10 h-10 animate-spin text-gold" />
+    <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/40">Loading Command Center</p>
+  </div>
+);
 
 export default function App() {
   const { isAuthenticated, user } = useAuth();
@@ -30,58 +38,60 @@ export default function App() {
         <Navbar />
 
         <main className="grow">
-          <AnimatePresence mode="wait">
-            <Routes>
-              {/* Home Route */}
-              <Route
-                path="/"
-                element={
-                  !isAuthenticated ? (
-                    <LandingPage />
-                  ) : user?.role === "auctioneer" ? (
-                    <AuctioneerDashboardPage />
-                  ) : (
-                    <DashboardPage />
-                  )
-                }
-              />
+          <Suspense fallback={<PageLoader />}>
+            <AnimatePresence mode="wait">
+              <Routes>
+                {/* Home Route */}
+                <Route
+                  path="/"
+                  element={
+                    !isAuthenticated ? (
+                      <LandingPage />
+                    ) : user?.role === "auctioneer" ? (
+                      <AuctioneerDashboardPage />
+                    ) : (
+                      <DashboardPage />
+                    )
+                  }
+                />
 
-              <Route
-                path="/auctioneer-dashboard"
-                element={<AuctioneerDashboardPage />}
-              />
-              <Route
-                path="/auctioneer/dashboard"
-                element={<AuctioneerDashboardPage />}
-              />
+                <Route
+                  path="/auctioneer-dashboard"
+                  element={<AuctioneerDashboardPage />}
+                />
+                <Route
+                  path="/auctioneer/dashboard"
+                  element={<AuctioneerDashboardPage />}
+                />
 
-              <Route
-                path="/auctioneer"
-                element={
-                  isAuthenticated && user?.role === "auctioneer" ? (
-                    <AuctioneerDashboardPage />
-                  ) : (
-                    <DashboardPage />
-                  )
-                }
-              />
+                <Route
+                  path="/auctioneer"
+                  element={
+                    isAuthenticated && user?.role === "auctioneer" ? (
+                      <AuctioneerDashboardPage />
+                    ) : (
+                      <DashboardPage />
+                    )
+                  }
+                />
 
-              {/* General Routes */}
-              <Route path="/gallery" element={<HomePage />} />
-              <Route path="/browse" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/create" element={<CreateAuctionPage />} />
-              <Route path="/my-consignments" element={<MyConsignmentsPage />} />
-              <Route path="/auction/:id" element={<AuctionDetailPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/seller-analytics" element={<SellerAnalyticsPage />} />
-              <Route path="/mediator-dashboard" element={<MediatorDashboardPage />} />
-            </Routes>
-          </AnimatePresence>
+                {/* General Routes */}
+                <Route path="/gallery" element={<HomePage />} />
+                <Route path="/browse" element={<HomePage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/create" element={<CreateAuctionPage />} />
+                <Route path="/my-consignments" element={<MyConsignmentsPage />} />
+                <Route path="/auction/:id" element={<AuctionDetailPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/orders" element={<OrdersPage />} />
+                <Route path="/seller-analytics" element={<SellerAnalyticsPage />} />
+                <Route path="/mediator-dashboard" element={<MediatorDashboardPage />} />
+              </Routes>
+            </AnimatePresence>
+          </Suspense>
         </main>
 
         {/* Footer */}
@@ -172,3 +182,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
