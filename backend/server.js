@@ -54,16 +54,22 @@ const authRoutes = require("./routes/authRoutes");
 const auctionRoutes = require("./routes/auctionRoutes");
 const bidRoutes = require("./routes/bidRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
 const chatRoutes = require("./routes/chatRoutes");
 const mediatorRoutes = require("./routes/mediatorRoutes");
 const userRoutes = require("./routes/userRoutes");
+
+// Initialize IO for controllers
+const bidController = require("./controllers/bidController");
+bidController.setIo(io);
 
 
 app.use("/api/auth", authRoutes);
 app.use("/api/auctions", auctionRoutes);
 app.use("/api/bids", bidRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/payments", paymentRoutes);
 
 app.use("/api/chat", chatRoutes);
 app.use("/api/mediator", mediatorRoutes);

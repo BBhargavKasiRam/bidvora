@@ -1,43 +1,51 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Package, Truck, CheckCircle, ExternalLink, Trophy, Clock } from "lucide-react";
+import { Package, Truck, CheckCircle, ExternalLink, Trophy, CreditCard, ShieldCheck, AlertCircle } from "lucide-react";
 import { api } from "../lib/api";
-
-const STATUS_MAP = {
-  Processing: { color: "bg-gold", label: "Processing" },
-  Shipped: { color: "bg-green-500", label: "Shipped" },
-  Delivered: { color: "bg-emerald-600", label: "Delivered" },
-};
+import { TrackingModal } from "../components/TrackingModal";
+import { InvoiceModal } from "../components/InvoiceModal";
+import { PaymentModal } from "../components/PaymentModal";
 
 export const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  
+  // Modal states
+  const [showTracking, setShowTracking] = useState(false);
+  const [showInvoice, setShowInvoice] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+
+  const fetchOrders = async () => {
+    try {
+      const data = await api.get("/orders");
+      setOrders(data);
+    } catch (err) {
+      console.error("Orders fetch error:", err);
+      setError("Failed to load orders. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const data = await api.get("/orders");
-        setOrders(data);
-      } catch (err) {
-        console.error("Orders fetch error:", err);
-        setError("Failed to load orders. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOrders();
   }, []);
 
-  const handleTrack = () => {
-    setMessage("Shipment tracking is being initialized. You will receive an update shortly.");
-    setTimeout(() => setMessage(""), 3000);
+  const handleTrack = (order) => {
+    setSelectedOrder(order);
+    setShowTracking(true);
   };
 
-  const handleInvoice = () => {
-    setMessage("Generating your digital invoice... Please wait.");
-    setTimeout(() => setMessage(""), 3000);
+  const handleInvoice = (order) => {
+    setSelectedOrder(order);
+    setShowInvoice(true);
+  };
+
+  const handlePayment = (order) => {
+    setSelectedOrder(order);
+    setShowPayment(true);
   };
 
   if (loading) return (
@@ -60,20 +68,15 @@ export const OrdersPage = () => {
         )}
       </header>
 
-      <AnimatePresence>
-        {(error || message) && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className={`mb-10 p-4 text-[11px] uppercase tracking-widest font-bold border-l-2 ${
-              error ? "bg-red-50 text-red-600 border-red-600" : "bg-gold/10 text-gold border-gold"
-            }`}
-          >
-            {error || message}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-10 p-4 text-[11px] uppercase tracking-widest font-bold border-l-2 bg-red-50 text-red-600 border-red-600"
+        >
+          {error}
+        </motion.div>
+      )}
 
       <div className="space-y-12">
         <AnimatePresence>
@@ -99,7 +102,6 @@ export const OrdersPage = () => {
                     <Package className="w-12 h-12" />
                   </div>
                 )}
-                {/* Winner badge */}
                 <div className="absolute top-3 left-3 px-2 py-1 bg-gold text-ink text-[9px] uppercase tracking-[0.2em] font-bold flex items-center gap-1">
                   <Trophy className="w-3 h-3" />
                   Won
@@ -146,53 +148,62 @@ export const OrdersPage = () => {
                     </div>
                     <div>
                       <p className="text-[9px] uppercase tracking-widest text-ink/40 font-bold mb-2">
-                        Auction Ended
-                      </p>
-                      <p className="text-sm font-light">
-                        {new Date(order.end_time).toLocaleDateString("en-US", {
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] uppercase tracking-widest text-ink/40 font-bold mb-2">
-                        Status
+                        Payment Status
                       </p>
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-                        <p className="text-sm font-bold uppercase tracking-widest text-gold">
-                          Processing
+                        <div className={`w-2 h-2 rounded-full ${order.payment_status === 'Paid' ? 'bg-green-500' : 'bg-gold animate-pulse'}`} />
+                        <p className={`text-sm font-bold uppercase tracking-widest ${order.payment_status === 'Paid' ? 'text-green-500' : 'text-gold'}`}>
+                          {order.payment_status}
                         </p>
                       </div>
                     </div>
                     <div>
                       <p className="text-[9px] uppercase tracking-widest text-ink/40 font-bold mb-2">
-                        Savings
+                        Shipment Status
                       </p>
-                      <p className="text-sm font-bold text-green-600">
-                        Started at ${Number(order.starting_price).toLocaleString()}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-ink/20" />
+                        <p className="text-sm font-bold uppercase tracking-widest text-ink/40">
+                          {order.payment_status === 'Paid' ? 'Processing' : 'Awaiting Payment'}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-6 mt-10">
+                <div className="flex flex-wrap gap-6 mt-10">
+                  {order.payment_status === 'Pending' ? (
+                    <button
+                      onClick={() => handlePayment(order)}
+                      className="flex items-center gap-3 px-8 py-3 bg-gold text-ink text-[10px] uppercase tracking-widest font-bold hover:bg-ink hover:text-paper transition-all shadow-lg shadow-gold/20"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      Secure Payment
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleTrack(order)}
+                      className="flex items-center gap-3 px-8 py-3 bg-ink text-paper text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition-colors"
+                    >
+                      <Truck className="w-4 h-4" />
+                      Track Shipment
+                    </button>
+                  )}
+                  
                   <button
-                    onClick={handleTrack}
-                    className="flex items-center gap-3 px-8 py-3 bg-ink text-paper text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition-colors"
-                  >
-                    <Truck className="w-4 h-4" />
-                    Track Shipment
-                  </button>
-                  <button
-                    onClick={handleInvoice}
+                    onClick={() => handleInvoice(order)}
                     className="flex items-center gap-3 px-8 py-3 border border-ink/10 text-[10px] uppercase tracking-widest font-bold hover:bg-ink hover:text-paper transition-colors"
                   >
                     <ExternalLink className="w-4 h-4" />
                     View Invoice
                   </button>
+
+                  {order.payment_status === 'Paid' && (
+                    <div className="flex items-center gap-2 ml-auto text-green-600 bg-green-50 px-4 py-2 border border-green-100">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span className="text-[9px] uppercase tracking-widest font-bold">Guaranteed by Bidvora</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -211,6 +222,26 @@ export const OrdersPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      <TrackingModal 
+        isOpen={showTracking} 
+        onClose={() => setShowTracking(false)} 
+        order={selectedOrder} 
+      />
+      <InvoiceModal 
+        isOpen={showInvoice} 
+        onClose={() => setShowInvoice(false)} 
+        order={selectedOrder} 
+      />
+      <PaymentModal 
+        isOpen={showPayment} 
+        onClose={() => {
+          setShowPayment(false);
+          fetchOrders(); // Refresh status after payment
+        }} 
+        order={selectedOrder} 
+      />
     </div>
   );
 };

@@ -20,10 +20,15 @@ router.get("/", authMiddleware, (req, res) => {
       a.end_time,
       a.starting_price,
       u.name AS seller_name,
-      b.created_at AS won_at
+      b.created_at AS won_at,
+      CASE WHEN t.id IS NOT NULL THEN 'Paid' ELSE 'Pending' END AS payment_status,
+      t.shipping_status,
+      t.tracking_number,
+      t.courier_name
     FROM auctions a
     JOIN users u ON a.seller_id = u.id
     JOIN bids b ON b.auction_id = a.id
+    LEFT JOIN transactions t ON t.auction_id = a.id
     WHERE b.user_id = ? 
       AND b.amount = a.current_price
       AND a.end_time <= CURRENT_TIMESTAMP

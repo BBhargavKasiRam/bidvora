@@ -19,3 +19,29 @@
     @apply font-serif;
   }
 }
+
+@media print {
+  /* Hide everything on the page when printing */
+  body * {
+    visibility: hidden;
+  }
+  /* Show only the modal content and its children */
+  .fixed.print\:static,
+  .fixed.print\:static * {
+    visibility: visible;
+  }
+  .fixed.print\:static {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    background: white;
+  }
+  /* Hide specific UI elements within the modal during print */
+  .print\:hidden {
+    display: none !important;
+  }
+}

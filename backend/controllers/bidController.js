@@ -95,13 +95,29 @@ exports.placeBid = (req, res) => {
 
               // Broadcast to all sockets in auction room
               if (io) {
-                io.to(`auction:${auction_id}`).emit("newBid", bidData);
+                const roomName = `auction:${String(auction_id)}`;
+                console.log(`[BidController] Emitting newBid to ${roomName}`);
+                io.to(roomName).emit("newBid", bidData);
+                
+                // Manual bid announcements will be handled by the frontend emit for better reliability
+                // But we still insert to DB for history
+                const chatMsg = `A new bid of $${Number(amount).toLocaleString()} has been placed by ${userName}!`;
+                db.query(
+                  "INSERT INTO chat_messages (auction_id, user_id, message, is_system_message) VALUES (?, NULL, ?, 1)",
+                  [auction_id, chatMsg],
+                  (chatErr) => {
+                    if (chatErr) console.error("Error inserting bid chat message:", chatErr);
+                  }
+                );
+
                 if (wasExtended) {
-                  io.to(`auction:${auction_id}`).emit("timerExtended", {
+                  io.to(roomName).emit("timerExtended", {
                     newEndTime: newEndTime.toISOString(),
                     extensionMinutes: 3,
                   });
                 }
+              } else {
+                console.error("[BidController] IO instance not set! Cannot broadcast bid.");
               }
 
               res.json({
@@ -158,9 +174,30 @@ exports.placeBid = (req, res) => {
                                 isAutoBid: true
                               };
 
-                              if (io) {
-                                io.to(`auction:${auction_id}`).emit("newBid", autoBidData);
-                              }
+                               if (io) {
+                                 const roomName = `auction:${String(auction_id)}`;
+                                 io.to(roomName).emit("newBid", autoBidData);
+
+                                 // Also broadcast auto-bid to chat
+                                 const autoChatMsg = `Auto-bid of $${Number(autoBidAmount).toLocaleString()} placed for ${autoUserName}`;
+                                 db.query(
+                                   "INSERT INTO chat_messages (auction_id, user_id, message, is_system_message) VALUES (?, NULL, ?, 1)",
+                                   [auction_id, autoChatMsg],
+                                   (chatErr, chatResult) => {
+                                     if (!chatErr) {
+                                       io.to(roomName).emit("newChatMessage", {
+                                         id: chatResult.insertId,
+                                         auction_id: String(auction_id),
+                                         user_id: null,
+                                         user_name: "System",
+                                         message: autoChatMsg,
+                                         is_system_message: 1,
+                                         created_at: new Date().toISOString()
+                                       });
+                                     }
+                                   }
+                                 );
+                               }
                             }
                           );
                         }

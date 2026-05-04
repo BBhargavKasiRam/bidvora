@@ -718,7 +718,15 @@ export const AuctionDetailPage = () => {
       });
       setSuccess(result.message || "Bid placed successfully!");
       setBidAmount("");
-      // No need to wait for full fetch as socket handles live update
+      
+      // Broadcast to live chat for immediate visibility
+      getSocket().emit("sendChatMessage", {
+        auctionId: id,
+        userId: null,
+        message: `${user.name} just placed a new high bid of $${amount.toLocaleString()}!`,
+        isSystemMessage: true,
+        user: { name: "System", role: "system" }
+      });
     } catch (err) {
       setError(err.message || "Bid failed");
     } finally {
@@ -891,19 +899,34 @@ export const AuctionDetailPage = () => {
           />
         )}
 
+        {/* TOP SECTION: Video & Chat (Span 5) */}
+        <div className="mb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="px-3 py-1 bg-ink text-paper text-[10px] uppercase tracking-[0.2em] font-bold">
+                  Consignor Dashboard
+                </span>
+                <span className="text-[10px] text-ink/40 font-mono uppercase tracking-widest">
+                  Lot #{auction.id?.toString().padStart(4, "0")}
+                </span>
+              </div>
+              <VideoStream
+                auctionId={id}
+                isBroadcaster={isAuctioneer}
+                broadcasterName={auction.seller_name}
+              />
+            </div>
+            <div className="lg:col-span-1 h-full">
+              {!isEnded && <LiveChat auctionId={id} />}
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
           <div className="lg:col-span-3 space-y-8">
             <div className="flex items-center gap-3 mb-2">
-              <span
-                className={`px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-bold ${
-                  isEnded ? "bg-ink text-paper" : "bg-gold text-ink"
-                }`}
-              >
-                {isEnded ? "Auction Ended" : "Live Auction"}
-              </span>
-              <span className="text-[10px] text-ink/40 font-mono uppercase tracking-widest">
-                Lot #{auction.id?.toString().padStart(4, "0")}
-              </span>
+               {/* Labels are now in the top Media section */}
             </div>
 
             {isEditing ? (
@@ -985,15 +1008,9 @@ export const AuctionDetailPage = () => {
 
           <div className="lg:col-span-2 space-y-6">
             {!isEnded && (
-              <>
-                <VideoStream
-                  auctionId={id}
-                  isBroadcaster={isAuctioneer}
-                  broadcasterName={auction.seller_name}
-                />
-                <LiveChat auctionId={id} />
+              <div className="mb-6">
                 <PrivateChat auctionId={id} />
-              </>
+              </div>
             )}
 
             <div className="bg-white border border-ink/10 p-8 shadow-xl relative overflow-hidden">
@@ -1211,45 +1228,54 @@ export const AuctionDetailPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* LEFT COLUMN: Media & Chat (Span 7) */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="flex items-center gap-3">
-            <span
-              className={`px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-bold ${
-                isEnded ? "bg-ink text-paper" : "bg-gold text-ink"
-              }`}
-            >
-              {isEnded ? "Auction Ended" : "Live Auction"}
-            </span>
-            <span className="text-[10px] text-ink/40 font-mono uppercase tracking-widest">
-              Lot #{auction.id?.toString().padStart(4, "0")}
-            </span>
-            {!isEnded && (
-              <span className="flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold text-amber-600 border border-amber-200 px-2 py-0.5">
-                <Shield className="w-3 h-3" />
-                Anti-Snipe
-              </span>
-            )}
-            {isAuctioneer && !isEnded && (
-              <button 
-                onClick={handleLockAuction}
-                className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-red-600 text-white text-[10px] uppercase tracking-widest font-bold hover:bg-red-700 transition"
-              >
-                <Gavel className="w-3.5 h-3.5" /> Lock Auction
-              </button>
-            )}
+        {/* TOP SECTION: Video & Chat (Span 12) */}
+        <div className="lg:col-span-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <div className="flex items-center gap-3 mb-4">
+                <span
+                  className={`px-3 py-1 text-[10px] uppercase tracking-[0.2em] font-bold ${
+                    isEnded ? "bg-ink text-paper" : "bg-gold text-ink"
+                  }`}
+                >
+                  {isEnded ? "Auction Ended" : "Live Auction"}
+                </span>
+                <span className="text-[10px] text-ink/40 font-mono uppercase tracking-widest">
+                  Lot #{auction.id?.toString().padStart(4, "0")}
+                </span>
+                {!isEnded && (
+                  <span className="flex items-center gap-1 text-[9px] uppercase tracking-widest font-bold text-amber-600 border border-amber-200 px-2 py-0.5">
+                    <Shield className="w-3 h-3" />
+                    Anti-Snipe
+                  </span>
+                )}
+                {isAuctioneer && !isEnded && (
+                  <button 
+                    onClick={handleLockAuction}
+                    className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-red-600 text-white text-[10px] uppercase tracking-widest font-bold hover:bg-red-700 transition"
+                  >
+                    <Gavel className="w-3.5 h-3.5" /> Lock Auction
+                  </button>
+                )}
+              </div>
+              <VideoStream
+                auctionId={id}
+                isBroadcaster={isAuctioneer}
+                broadcasterName={auction.seller_name}
+              />
+            </div>
+            <div className="lg:col-span-1 h-full">
+              {!isEnded && <LiveChat auctionId={id} />}
+            </div>
           </div>
+        </div>
 
-          <VideoStream
-            auctionId={id}
-            isBroadcaster={isAuctioneer}
-            broadcasterName={auction.seller_name}
-          />
-
+        {/* BOTTOM SECTION: Info & Bidding */}
+        <div className="lg:col-span-7 space-y-8">
           {imagePreview && (
             <div
               onClick={() => setIsModalOpen(true)}
-              className="relative group aspect-video bg-paper border border-ink/5 overflow-hidden shadow-sm cursor-zoom-in mt-6"
+              className="relative group aspect-video bg-paper border border-ink/5 overflow-hidden shadow-sm cursor-zoom-in"
             >
               <img
                 src={imagePreview}
@@ -1261,14 +1287,21 @@ export const AuctionDetailPage = () => {
               </div>
             </div>
           )}
+
+          <div className="space-y-6">
+            <h1 className="text-4xl font-serif leading-[1.1] tracking-tight">
+              {auction.title}
+            </h1>
+            <p className="text-md text-ink/70 font-light leading-relaxed border-l-2 border-gold/20 pl-4 whitespace-pre-wrap">
+              {auction.description}
+            </p>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: Info & Bidding (Span 5) */}
         <div className="lg:col-span-5 space-y-6">
-          {!isEnded && (
-            <div className="mb-6 space-y-6">
-              <LiveChat auctionId={id} />
-              {(isConsignor || isAuctioneer) && <PrivateChat auctionId={id} />}
+          {!isEnded && (isConsignor || isAuctioneer) && (
+            <div className="mb-6">
+              <PrivateChat auctionId={id} />
             </div>
           )}
 
