@@ -404,28 +404,63 @@ exports.getSellerAnalytics = (req, res) => {
     return res.status(403).json({ message: "Only sellers can access analytics" });
   }
 
-  const sql = `
+  // Summary stats
+  const statsSql = `
     SELECT 
       COUNT(id) AS total_auctions,
       SUM(CASE WHEN end_time <= NOW() THEN 1 ELSE 0 END) AS total_sold,
       SUM(CASE WHEN end_time > NOW() THEN 1 ELSE 0 END) AS active_auctions,
       SUM(CASE WHEN end_time <= NOW() AND current_price > starting_price THEN current_price ELSE 0 END) AS total_revenue,
-      AVG(CASE WHEN end_time <= NOW() AND current_price > starting_price THEN current_price ELSE NULL END) AS average_sale_price
+      AVG(CASE WHEN end_time <= NOW() AND current_price > starting_price THEN current_price ELSE NULL END) AS average_sale_price,
+      COUNT(CASE WHEN end_time <= NOW() THEN 1 END) AS ended_auctions
     FROM auctions
     WHERE seller_id = ?
   `;
 
-  db.query(sql, [sellerId], (err, results) => {
+  // Revenue by month (last 6 months)
+  const revenueSql = `
+    SELECT 
+      DATE_FORMAT(end_time, '%b %Y') AS month,
+      DATE_FORMAT(end_time, '%Y-%m') AS month_key,
+      SUM(CASE WHEN current_price > starting_price THEN current_price ELSE 0 END) AS revenue,
+      COUNT(*) AS auctions_count
+    FROM auctions
+    WHERE seller_id = ? 
+      AND end_time <= NOW()
+      AND end_time >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+    GROUP BY month_key, month
+    ORDER BY month_key ASC
+  `;
+
+  // Top items by sale price
+  const topItemsSql = `
+    SELECT title, current_price AS sale_price, end_time
+    FROM auctions
+    WHERE seller_id = ? AND end_time <= NOW() AND current_price > starting_price
+    ORDER BY current_price DESC
+    LIMIT 5
+  `;
+
+  db.query(statsSql, [sellerId], (err, statsResults) => {
     if (err) return res.status(500).json({ message: "Failed to fetch analytics" });
-    
-    const analytics = results[0] || {
-      total_auctions: 0,
-      total_sold: 0,
-      active_auctions: 0,
-      total_revenue: 0,
-      average_sale_price: 0
+
+    const analytics = statsResults[0] || {
+      total_auctions: 0, total_sold: 0, active_auctions: 0,
+      total_revenue: 0, average_sale_price: 0, ended_auctions: 0
     };
-    
-    res.json(analytics);
+
+    db.query(revenueSql, [sellerId], (err, revenueResults) => {
+      if (err) return res.status(500).json({ message: "Failed to fetch revenue data" });
+
+      db.query(topItemsSql, [sellerId], (err, topItemsResults) => {
+        if (err) return res.status(500).json({ message: "Failed to fetch top items" });
+
+        res.json({
+          ...analytics,
+          revenueByMonth: revenueResults,
+          topItems: topItemsResults
+        });
+      });
+    });
   });
 };
