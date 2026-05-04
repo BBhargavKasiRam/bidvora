@@ -558,13 +558,16 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
   );
 };
 
-// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
+import { useToast } from "../context/ToastContext";
+
 export const AuctionDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const fileInputRef = useRef(null);
+  const { showToast } = useToast();
+  const prevLeaderId = useRef(null);
 
   const searchParams = new URLSearchParams(location.search);
   const shouldEdit = searchParams.get("edit") === "true";
@@ -601,8 +604,8 @@ export const AuctionDetailPage = () => {
       setAuction(data);
       setCurrentEndTime(data.end_time);
       
-      // CRITICAL FIX: Ensure bid history is populated from initial load
       setLiveBids(data.bids || []);
+      prevLeaderId.current = data.bids?.[0]?.user_id;
       
       setEditForm({
         title: data.title,
@@ -618,7 +621,6 @@ export const AuctionDetailPage = () => {
         setImagePreview(fullUrl);
       }
 
-      // Fetch seller rating
       try {
         const ratingData = await api.get(`/reviews/${data.seller_id}`);
         setSellerRating(ratingData);
@@ -627,7 +629,6 @@ export const AuctionDetailPage = () => {
       }
 
       if (user) {
-        // Fetch Proxy Bid if user is logged in
         api.get(`/bids/proxy/${id}`)
           .then(res => {
             if (res.max_bid_amount) setActiveProxyBid(res.max_bid_amount);
@@ -655,7 +656,19 @@ export const AuctionDetailPage = () => {
     socket.emit("joinAuction", String(id));
 
     socket.on("newBid", (bidData) => {
-      setLiveBids((prev) => [bidData, ...prev]);
+      // Logic for Outbid Notification
+      if (user && prevLeaderId.current === user.id && bidData.user_id !== user.id) {
+        showToast(`You've been outbid! New bid: $${bidData.amount.toLocaleString()}`, "error");
+      } else if (user && bidData.user_id === user.id) {
+        showToast(`Bid placed successfully: $${bidData.amount.toLocaleString()}`, "success");
+      }
+
+      setLiveBids((prev) => {
+        const newBids = [bidData, ...prev];
+        prevLeaderId.current = newBids[0]?.user_id;
+        return newBids;
+      });
+
       setAuction((prev) =>
         prev ? { ...prev, current_price: bidData.amount } : prev
       );
@@ -664,6 +677,7 @@ export const AuctionDetailPage = () => {
     socket.on("timerExtended", ({ newEndTime, extensionMinutes }) => {
       setCurrentEndTime(newEndTime);
       setAntiSnipeData({ extensionMinutes });
+      showToast(`Auction extended by ${extensionMinutes}m (Anti-Snipe)`, "info");
       setTimeout(() => setAntiSnipeData(null), 10000);
     });
 
@@ -672,7 +686,9 @@ export const AuctionDetailPage = () => {
       socket.off("newBid");
       socket.off("timerExtended");
     };
-  }, [id]);
+  }, [id, user, showToast]);
+
+
 
   const handleUpdate = async () => {
     setError("");

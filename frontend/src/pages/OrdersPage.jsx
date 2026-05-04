@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Package, Truck, CheckCircle, ExternalLink, Trophy, CreditCard, ShieldCheck, AlertCircle } from "lucide-react";
+import { Package, Truck, CheckCircle, ExternalLink, Trophy, CreditCard, ShieldCheck, AlertCircle, Star } from "lucide-react";
 import { api } from "../lib/api";
 import { TrackingModal } from "../components/TrackingModal";
 import { InvoiceModal } from "../components/InvoiceModal";
 import { PaymentModal } from "../components/PaymentModal";
 import { ReviewModal } from "../components/ReviewModal";
-import { Star } from "lucide-react";
+import { OrderSkeleton } from "../components/OrderSkeleton";
 
 export const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -56,11 +56,19 @@ export const OrdersPage = () => {
     setShowReview(true);
   };
 
+
   if (loading) return (
-    <div className="flex justify-center items-center h-[60vh]">
-      <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+    <div className="max-w-7xl mx-auto px-8 py-20">
+      <header className="mb-20">
+        <div className="h-4 w-32 bg-ink/5 mb-4 animate-pulse" />
+        <div className="h-16 w-64 bg-ink/5 animate-pulse" />
+      </header>
+      <div className="space-y-12">
+        {[1, 2, 3].map(i => <OrderSkeleton key={i} />)}
+      </div>
     </div>
   );
+
 
   return (
     <div className="max-w-7xl mx-auto px-8 py-20">
