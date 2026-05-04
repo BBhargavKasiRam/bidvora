@@ -15,6 +15,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { AuctioneerDashboardPage } from "./pages/AuctioneerDashboardPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { SellerAnalyticsPage } from "./pages/SellerAnalyticsPage";
 
 import { Gavel } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
@@ -76,6 +77,7 @@ export default function App() {
               <Route path="/auction/:id" element={<AuctionDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/seller-analytics" element={<SellerAnalyticsPage />} />
             </Routes>
           </AnimatePresence>
         </main>

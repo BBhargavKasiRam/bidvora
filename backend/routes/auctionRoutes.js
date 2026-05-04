@@ -13,6 +13,7 @@ const {
   updateMediatorStatus,
   getMediatorMessages,
   sendMediatorMessage,
+  getSellerAnalytics,
 } = require("../controllers/auctionController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -22,6 +23,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // ✅ Routes
+router.get("/seller-analytics", authMiddleware, getSellerAnalytics);
 router.get("/", getAuctions);
 router.get("/:id", getAuctionById);
 

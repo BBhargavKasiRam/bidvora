@@ -27,6 +27,7 @@ export const Navbar = () => {
             <Link to="/orders" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Orders</Link>
             {user.role === 'consignor' && (
               <>
+                <Link to="/seller-analytics" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Analytics</Link>
                 <Link to="/my-consignments" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">My Consignments</Link>
                 <Link to="/create" className="flex items-center gap-2 text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">
                   <PlusCircle className="w-4 h-4" />

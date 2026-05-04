@@ -396,3 +396,36 @@ exports.sendMediatorMessage = (req, res) => {
     );
   });
 };
+
+exports.getSellerAnalytics = (req, res) => {
+  const sellerId = req.user.id;
+
+  if (req.user.role !== "seller" && req.user.role !== "consignor") {
+    return res.status(403).json({ message: "Only sellers can access analytics" });
+  }
+
+  const sql = `
+    SELECT 
+      COUNT(id) AS total_auctions,
+      SUM(CASE WHEN end_time <= NOW() THEN 1 ELSE 0 END) AS total_sold,
+      SUM(CASE WHEN end_time > NOW() THEN 1 ELSE 0 END) AS active_auctions,
+      SUM(CASE WHEN end_time <= NOW() AND current_price > starting_price THEN current_price ELSE 0 END) AS total_revenue,
+      AVG(CASE WHEN end_time <= NOW() AND current_price > starting_price THEN current_price ELSE NULL END) AS average_sale_price
+    FROM auctions
+    WHERE seller_id = ?
+  `;
+
+  db.query(sql, [sellerId], (err, results) => {
+    if (err) return res.status(500).json({ message: "Failed to fetch analytics" });
+    
+    const analytics = results[0] || {
+      total_auctions: 0,
+      total_sold: 0,
+      active_auctions: 0,
+      total_revenue: 0,
+      average_sale_price: 0
+    };
+    
+    res.json(analytics);
+  });
+};
