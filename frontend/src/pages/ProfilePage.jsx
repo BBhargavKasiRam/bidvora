@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { User, Mail, Shield, Settings, Edit3, Save, X, CheckCircle2, AlertCircle, Camera } from "lucide-react";
+import { User, Mail, Shield, Settings, Edit3, Save, X, CheckCircle2, AlertCircle, Camera, Star } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
 
@@ -10,6 +10,7 @@ export const ProfilePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [trustScore, setTrustScore] = useState(null);
   
   const fileInputRef = useRef(null);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -32,6 +33,14 @@ export const ProfilePage = () => {
       setPreviewUrl(user.profile_image || null);
     }
   }, [user, isEditing]);
+
+  useEffect(() => {
+    if (user?.id) {
+      api.get(`/reviews/${user.id}`)
+        .then(data => setTrustScore(data))
+        .catch(() => {});
+    }
+  }, [user]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -136,6 +145,24 @@ export const ProfilePage = () => {
           <h1 className="text-5xl font-serif mb-4 tracking-tight">{user?.name}</h1>
         )}
         <p className="text-[10px] uppercase tracking-[0.4em] text-gold font-bold">Elite Member since 2026</p>
+
+        {/* Trust Score Badge */}
+        {trustScore && trustScore.totalReviews > 0 && (
+          <div className="mt-6 inline-flex items-center gap-3 px-6 py-3 bg-gold/5 border border-gold/20">
+            <div className="flex">
+              {[1,2,3,4,5].map(s => (
+                <Star
+                  key={s}
+                  className={`w-4 h-4 ${s <= Math.round(trustScore.averageRating) ? "fill-gold text-gold" : "text-ink/10"}`}
+                />
+              ))}
+            </div>
+            <div className="text-left">
+              <p className="font-bold font-serif leading-none">{trustScore.averageRating} Trust Score</p>
+              <p className="text-[9px] uppercase tracking-widest text-ink/40">{trustScore.totalReviews} review{trustScore.totalReviews !== 1 ? "s" : ""}</p>
+            </div>
+          </div>
+        )}
       </header>
 
       <AnimatePresence>
@@ -324,6 +351,52 @@ export const ProfilePage = () => {
           </div>
         </div>
       </div>
+
+      {/* Recent Reviews Section */}
+      {trustScore && trustScore.totalReviews > 0 && (
+        <section className="mt-12 bg-white border border-ink/5 p-10 shadow-xl">
+          <div className="flex items-center justify-between mb-8 border-b border-ink/5 pb-4">
+            <h3 className="text-xs uppercase tracking-[0.3em] font-bold text-ink/40">Trust Score & Reviews</h3>
+            <div className="flex items-center gap-2">
+              {[1,2,3,4,5].map(s => (
+                <Star
+                  key={s}
+                  className={`w-4 h-4 ${s <= Math.round(trustScore.averageRating) ? "fill-gold text-gold" : "text-ink/10"}`}
+                />
+              ))}
+              <span className="text-sm font-bold ml-1">{trustScore.averageRating}</span>
+              <span className="text-[10px] uppercase tracking-widest text-ink/40 font-bold ml-1">
+                ({trustScore.totalReviews} review{trustScore.totalReviews !== 1 ? "s" : ""})
+              </span>
+            </div>
+          </div>
+          <div className="space-y-6">
+            {trustScore.reviews?.slice(0, 5).map((review, i) => (
+              <div key={i} className="flex gap-4 py-4 border-b border-ink/5 last:border-0">
+                <div className="w-10 h-10 rounded-full bg-ink text-paper flex items-center justify-center font-serif text-base flex-shrink-0">
+                  {review.reviewer_name?.charAt(0) || "?"}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-bold text-sm">{review.reviewer_name}</p>
+                    <div className="flex">
+                      {[1,2,3,4,5].map(s => (
+                        <Star key={s} className={`w-3 h-3 ${s <= review.rating ? "fill-gold text-gold" : "text-ink/10"}`} />
+                      ))}
+                    </div>
+                  </div>
+                  {review.comment && (
+                    <p className="text-sm text-ink/60 font-light leading-relaxed">{review.comment}</p>
+                  )}
+                  <p className="text-[9px] uppercase tracking-widest text-ink/30 mt-2">
+                    {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };
