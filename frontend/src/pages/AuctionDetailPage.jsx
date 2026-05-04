@@ -23,8 +23,8 @@ import {
   MicOff,
   Wifi,
   WifiOff,
-  Trash2,
   ShoppingBag,
+  Star,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
@@ -588,10 +588,12 @@ export const AuctionDetailPage = () => {
   const [liveBids, setLiveBids] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
-  // Proxy Bidding
   const [proxyBidLimit, setProxyBidLimit] = useState("");
   const [activeProxyBid, setActiveProxyBid] = useState(null);
   const [proxyLoading, setProxyLoading] = useState(false);
+
+  // Seller Rating
+  const [sellerRating, setSellerRating] = useState(null);
 
   const fetchAuction = useCallback(async () => {
     try {
@@ -616,9 +618,17 @@ export const AuctionDetailPage = () => {
         setImagePreview(fullUrl);
       }
 
+      // Fetch seller rating
+      try {
+        const ratingData = await api.get(`/reviews/${data.seller_id}`);
+        setSellerRating(ratingData);
+      } catch (err) {
+        console.error("Failed to fetch seller rating", err);
+      }
+
       if (user) {
         // Fetch Proxy Bid if user is logged in
-        api.get(`/proxy-bids/${id}`)
+        api.get(`/bids/proxy/${id}`)
           .then(res => {
             if (res.max_bid_amount) setActiveProxyBid(res.max_bid_amount);
           })
@@ -1166,7 +1176,15 @@ export const AuctionDetailPage = () => {
                 <p className="text-[9px] uppercase tracking-[0.3em] text-ink/40 font-bold mb-0.5">
                   Curated By
                 </p>
-                <p className="font-serif text-xl">{auction.seller_name}</p>
+                <div className="flex items-center gap-3">
+                  <p className="font-serif text-xl">{auction.seller_name}</p>
+                  {sellerRating && sellerRating.totalReviews > 0 && (
+                    <div className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-gold/10 text-gold border border-gold/20">
+                      <Star className="w-3 h-3 fill-gold" />
+                      {sellerRating.averageRating} ({sellerRating.totalReviews})
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

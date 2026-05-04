@@ -20,6 +20,7 @@ router.get("/", authMiddleware, (req, res) => {
       a.end_time,
       a.starting_price,
       u.name AS seller_name,
+      a.seller_id,
       b.created_at AS won_at,
       CASE WHEN t.id IS NOT NULL THEN 'Paid' ELSE 'Pending' END AS payment_status,
       t.shipping_status,

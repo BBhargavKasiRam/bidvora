@@ -59,6 +59,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const mediatorRoutes = require("./routes/mediatorRoutes");
 const userRoutes = require("./routes/userRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
 
 // Initialize IO for controllers
 const bidController = require("./controllers/bidController");
@@ -74,6 +75,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/mediator", mediatorRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 
 // ─── SOCKET.IO: REAL-TIME BIDDING + WEBRTC SIGNALING ────────────────────────

@@ -5,6 +5,8 @@ import { api } from "../lib/api";
 import { TrackingModal } from "../components/TrackingModal";
 import { InvoiceModal } from "../components/InvoiceModal";
 import { PaymentModal } from "../components/PaymentModal";
+import { ReviewModal } from "../components/ReviewModal";
+import { Star } from "lucide-react";
 
 export const OrdersPage = () => {
   const [orders, setOrders] = useState([]);
@@ -16,6 +18,7 @@ export const OrdersPage = () => {
   const [showTracking, setShowTracking] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showReview, setShowReview] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -46,6 +49,11 @@ export const OrdersPage = () => {
   const handlePayment = (order) => {
     setSelectedOrder(order);
     setShowPayment(true);
+  };
+
+  const handleReview = (order) => {
+    setSelectedOrder(order);
+    setShowReview(true);
   };
 
   if (loading) return (
@@ -199,10 +207,19 @@ export const OrdersPage = () => {
                   </button>
 
                   {order.payment_status === 'Paid' && (
-                    <div className="flex items-center gap-2 ml-auto text-green-600 bg-green-50 px-4 py-2 border border-green-100">
-                      <ShieldCheck className="w-4 h-4" />
-                      <span className="text-[9px] uppercase tracking-widest font-bold">Guaranteed by Bidvora</span>
-                    </div>
+                    <>
+                      <button
+                        onClick={() => handleReview(order)}
+                        className="flex items-center gap-3 px-8 py-3 border border-ink/10 text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition-colors"
+                      >
+                        <Star className="w-4 h-4" />
+                        Leave Review
+                      </button>
+                      <div className="flex items-center gap-2 ml-auto text-green-600 bg-green-50 px-4 py-2 border border-green-100">
+                        <ShieldCheck className="w-4 h-4" />
+                        <span className="text-[9px] uppercase tracking-widest font-bold">Guaranteed by Bidvora</span>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -241,6 +258,11 @@ export const OrdersPage = () => {
           fetchOrders(); // Refresh status after payment
         }} 
         order={selectedOrder} 
+      />
+      <ReviewModal
+        isOpen={showReview}
+        onClose={() => setShowReview(false)}
+        order={selectedOrder}
       />
     </div>
   );
