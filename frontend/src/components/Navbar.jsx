@@ -25,7 +25,7 @@ export const Navbar = () => {
             <Link to="/" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Dashboard</Link>
             <Link to="/gallery" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Gallery</Link>
             <Link to="/orders" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Orders</Link>
-            {user.role === 'consignor' && (
+            {(user.role === 'consignor' || user.role === 'seller') && (
               <>
                 <Link to="/seller-analytics" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Analytics</Link>
                 <Link to="/my-consignments" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">My Consignments</Link>
@@ -34,6 +34,9 @@ export const Navbar = () => {
                   Consign Item
                 </Link>
               </>
+            )}
+            {user.role === 'mediator' && (
+              <Link to="/mediator-dashboard" className="text-sm uppercase tracking-widest hover:text-gold transition-colors font-medium">Mediator HQ</Link>
             )}
           </>
         )}

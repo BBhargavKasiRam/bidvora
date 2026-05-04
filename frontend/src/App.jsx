@@ -16,6 +16,7 @@ import { AuctioneerDashboardPage } from "./pages/AuctioneerDashboardPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SellerAnalyticsPage } from "./pages/SellerAnalyticsPage";
+import { MediatorDashboardPage } from "./pages/MediatorDashboardPage";
 
 import { Gavel } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
@@ -78,6 +79,7 @@ export default function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/seller-analytics" element={<SellerAnalyticsPage />} />
+              <Route path="/mediator-dashboard" element={<MediatorDashboardPage />} />
             </Routes>
           </AnimatePresence>
         </main>
