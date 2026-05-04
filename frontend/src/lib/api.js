@@ -53,6 +53,7 @@ export const api = {
       result = JSON.parse(text);
     } catch { throw new Error(text); }
 
+    if (res.status === 401) throw new Error("Unauthorized");
     if (!res.ok) throw new Error(result.message || "Failed to fetch");
     return result;
   },

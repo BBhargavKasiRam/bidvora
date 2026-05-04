@@ -52,11 +52,8 @@ router.post("/create-intent", authMiddleware, async (req, res) => {
     LIMIT 1
   `;
 
-  db.query(sql, [auctionId, userId], async (err, results) => {
-    if (err) {
-      console.error("Payment intent DB error:", err);
-      return res.status(500).json({ message: "Database error" });
-    }
+  try {
+    const [results] = await db.query(sql, [auctionId, userId]);
 
     if (!results || results.length === 0) {
       return res.status(403).json({ message: "You did not win this auction or auction is still active" });
@@ -65,19 +62,15 @@ router.post("/create-intent", authMiddleware, async (req, res) => {
     const auction = results[0];
     const amountUSD = parseFloat(auction.current_price);
 
-    // Convert USD to target currency
     const rate = EXCHANGE_RATES[currencyUpper];
     const convertedAmount = amountUSD * rate;
 
-    // Stripe requires amounts in the smallest currency unit (cents)
     const stripeAmount = ZERO_DECIMAL_CURRENCIES.includes(currencyUpper)
       ? Math.round(convertedAmount)
       : Math.round(convertedAmount * 100);
 
-    // Check if Stripe is configured
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey || stripeKey.includes("placeholder")) {
-      // Return a mock response for testing when Stripe key is not configured
       return res.json({
         clientSecret: "pi_mock_" + Date.now() + "_secret_mock",
         amount: convertedAmount,
@@ -87,62 +80,59 @@ router.post("/create-intent", authMiddleware, async (req, res) => {
       });
     }
 
-    try {
-      const stripe = require("stripe")(stripeKey);
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: stripeAmount,
-        currency: currencyUpper.toLowerCase(),
-        metadata: {
-          auction_id: String(auctionId),
-          buyer_id: String(userId),
-          original_usd: String(amountUSD),
-        },
-        description: `Bidvora: ${auction.title} (Auction #${auctionId})`,
-        automatic_payment_methods: { enabled: true },
-      });
+    const stripe = require("stripe")(stripeKey);
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: stripeAmount,
+      currency: currencyUpper.toLowerCase(),
+      metadata: {
+        auction_id: String(auctionId),
+        buyer_id: String(userId),
+        original_usd: String(amountUSD),
+      },
+      description: `Bidvora: ${auction.title} (Auction #${auctionId})`,
+      automatic_payment_methods: { enabled: true },
+    });
 
-      res.json({
-        clientSecret: paymentIntent.client_secret,
-        amount: convertedAmount,
-        currency: currencyUpper,
-        auctionTitle: auction.title,
-        mock: false,
-      });
-    } catch (stripeErr) {
-      console.error("Stripe error:", stripeErr);
-      res.status(500).json({ message: stripeErr.message || "Payment processing error" });
-    }
-  });
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+      amount: convertedAmount,
+      currency: currencyUpper,
+      auctionTitle: auction.title,
+      mock: false,
+    });
+  } catch (err) {
+    console.error("Payment intent error:", err);
+    res.status(500).json({ message: err.message || "Server error" });
+  }
 });
 
 // POST /api/payments/confirm-payment
 // Records a successful transaction in the database
-router.post("/confirm-payment", authMiddleware, (req, res) => {
-  const { auctionId, paymentIntentId } = req.body;
-  const userId = req.user.id;
+router.post("/confirm-payment", authMiddleware, async (req, res) => {
+  try {
+    const { auctionId } = req.body;
+    const userId = req.user.id;
 
-  if (!auctionId) return res.status(400).json({ message: "Auction ID is required" });
+    if (!auctionId) return res.status(400).json({ message: "Auction ID is required" });
 
-  // Get the final price from the auction
-  db.query("SELECT current_price FROM auctions WHERE id = ?", [auctionId], (err, results) => {
-    if (err || results.length === 0) return res.status(500).json({ message: "Auction not found" });
+    // Get the final price from the auction
+    const [results] = await db.query("SELECT current_price FROM auctions WHERE id = ?", [auctionId]);
+    if (results.length === 0) return res.status(500).json({ message: "Auction not found" });
 
     const finalPrice = results[0].current_price;
 
     // Check if transaction already exists
-    db.query("SELECT id FROM transactions WHERE auction_id = ?", [auctionId], (err, trans) => {
-      if (trans && trans.length > 0) return res.json({ message: "Transaction already recorded" });
+    const [trans] = await db.query("SELECT id FROM transactions WHERE auction_id = ?", [auctionId]);
+    if (trans.length > 0) return res.json({ message: "Transaction already recorded" });
 
-      const sql = "INSERT INTO transactions (auction_id, winner_id, final_price) VALUES (?, ?, ?)";
-      db.query(sql, [auctionId, userId, finalPrice], (err, result) => {
-        if (err) {
-          console.error("Transaction recording error:", err);
-          return res.status(500).json({ message: "Failed to record transaction" });
-        }
-        res.json({ message: "Transaction recorded successfully", transactionId: result.insertId });
-      });
-    });
-  });
+    const sql = "INSERT INTO transactions (auction_id, winner_id, final_price) VALUES (?, ?, ?)";
+    const [result] = await db.query(sql, [auctionId, userId, finalPrice]);
+    
+    res.json({ message: "Transaction recorded successfully", transactionId: result.insertId });
+  } catch (err) {
+    console.error("Transaction recording error:", err);
+    res.status(500).json({ message: "Failed to record transaction" });
+  }
 });
 
 // GET /api/payments/currencies — returns available currencies with rates

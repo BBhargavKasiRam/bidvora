@@ -25,6 +25,7 @@ import {
   WifiOff,
   ShoppingBag,
   Star,
+  Trash2,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";

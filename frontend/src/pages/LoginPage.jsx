@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { signInWithGoogle } from "../lib/firebase";
@@ -10,6 +10,7 @@ export const LoginPage = () => {
   const [animating, setAnimating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
     email: "",
@@ -218,16 +219,25 @@ export const LoginPage = () => {
                   <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
                     Password
                   </label>
-                  <input
-                    autoFocus
-                    type="password"
-                    value={form.password}
-                    onChange={(e) => {
-                      setForm({ ...form, password: e.target.value });
-                      setError("");
-                    }}
-                    className="w-full border-b border-ink/10 py-5 text-xl outline-none focus:border-gold transition-colors"
-                  />
+                  <div className="relative">
+                    <input
+                      autoFocus
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => {
+                        setForm({ ...form, password: e.target.value });
+                        setError("");
+                      }}
+                      className="w-full border-b border-ink/10 py-5 pr-12 text-xl outline-none focus:border-gold transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-ink/40 hover:text-gold transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                   <div className="mt-4 text-right">
                     <Link
                       to="/forgot-password"

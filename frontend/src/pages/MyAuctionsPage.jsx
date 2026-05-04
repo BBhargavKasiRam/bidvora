@@ -13,14 +13,28 @@ export const MyAuctionsPage = () => {
   const [assignForm, setAssignForm] = useState({ auctionId: null, mediatorId: "", commission: "5" });
   const [auctioneerSearch, setAuctioneerSearch] = useState("");
 
+  // Fetch Auctions once
   useEffect(() => {
     if (user?.id) {
-      Promise.all([
-        api.get(`/auctions?seller_id=${user.id}`).then(setAuctions),
-        api.get(`/users/auctioneers?search=${auctioneerSearch}`).then(setMediators)
-      ]).finally(() => setLoading(false));
+      api.get(`/auctions?seller_id=${user.id}`)
+        .then(setAuctions)
+        .catch(err => console.error("Failed to fetch auctions", err))
+        .finally(() => setLoading(false));
+    } else if (user !== undefined) {
+      // user is null (not logged in) - stop the spinner
+      setLoading(false);
     }
-  }, [user, auctioneerSearch]);
+  }, [user?.id]);
+
+  // Fetch Mediators with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      api.get(`/users/auctioneers?search=${auctioneerSearch}`)
+        .then(setMediators);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [auctioneerSearch]);
 
   const handleAssignMediator = async () => {
     if (!assignForm.mediatorId || assignForm.commission === "") return;
@@ -68,64 +82,72 @@ export const MyAuctionsPage = () => {
                 </div>
               ) : (
                 <>
-                  {assignForm.auctionId === auction.id ? (
-                    <div className="space-y-3">
-                      <div>
-                        <div className="space-y-2">
-                          <input 
-                            type="text"
-                            placeholder="Search auctioneer..."
-                            className="w-full p-2 border border-ink/10 text-[10px] uppercase outline-none focus:border-gold"
-                            value={auctioneerSearch}
-                            onChange={(e) => setAuctioneerSearch(e.target.value)}
-                          />
-                          <select 
-                            className="w-full p-2 border border-ink/10 text-sm focus:border-gold outline-none"
-                            value={assignForm.mediatorId}
-                            onChange={(e) => setAssignForm({ ...assignForm, mediatorId: e.target.value })}
-                          >
-                            <option value="" disabled>Choose...</option>
-                            {mediators.map(m => (
-                              <option key={m.id} value={m.id}>{m.name} (Rating: {m.rating})</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-widest font-bold mb-1">Commission %:</p>
-                        <input 
-                          type="number"
-                          placeholder="e.g. 5"
-                          className="w-full p-2 border border-ink/10 text-sm focus:border-gold outline-none"
-                          value={assignForm.commission}
-                          onChange={(e) => setAssignForm({ ...assignForm, commission: e.target.value })}
-                          min="0"
-                          max="100"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={handleAssignMediator}
-                          disabled={!assignForm.mediatorId || assignForm.commission === ""}
-                          className="flex-1 py-2 bg-ink text-white text-[10px] uppercase tracking-widest font-bold hover:bg-gold disabled:opacity-50 transition"
-                        >
-                          Confirm
-                        </button>
-                        <button 
-                          onClick={() => setAssignForm({ auctionId: null, mediatorId: "", commission: "" })} 
-                          className="py-2 px-4 border border-ink/10 text-ink text-[10px] uppercase tracking-widest font-bold hover:bg-ink/5"
-                        >
-                          Cancel
-                        </button>
-                      </div>
+                  {new Date(auction.end_time) <= new Date() ? (
+                    <div className="text-xs text-ink/40 font-bold uppercase tracking-widest flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-ink/20"></span> Auction Ended
                     </div>
                   ) : (
-                    <button 
-                      onClick={() => setAssignForm({ auctionId: auction.id, mediatorId: "", commission: "" })}
-                      className="w-full py-2 bg-ink text-white text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition"
-                    >
-                      Assign Auctioneer
-                    </button>
+                    <>
+                      {assignForm.auctionId === auction.id ? (
+                        <div className="space-y-3">
+                          <div>
+                            <div className="space-y-2">
+                              <input 
+                                type="text"
+                                placeholder="Search auctioneer..."
+                                className="w-full p-2 border border-ink/10 text-[10px] uppercase outline-none focus:border-gold"
+                                value={auctioneerSearch}
+                                onChange={(e) => setAuctioneerSearch(e.target.value)}
+                              />
+                              <select 
+                                className="w-full p-2 border border-ink/10 text-sm focus:border-gold outline-none"
+                                value={assignForm.mediatorId}
+                                onChange={(e) => setAssignForm({ ...assignForm, mediatorId: e.target.value })}
+                              >
+                                <option value="" disabled>Choose...</option>
+                                {mediators.map(m => (
+                                  <option key={m.id} value={m.id}>{m.name} (Rating: {m.rating})</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-widest font-bold mb-1">Commission %:</p>
+                            <input 
+                              type="number"
+                              placeholder="e.g. 5"
+                              className="w-full p-2 border border-ink/10 text-sm focus:border-gold outline-none"
+                              value={assignForm.commission}
+                              onChange={(e) => setAssignForm({ ...assignForm, commission: e.target.value })}
+                              min="0"
+                              max="100"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={handleAssignMediator}
+                              disabled={!assignForm.mediatorId || assignForm.commission === ""}
+                              className="flex-1 py-2 bg-ink text-white text-[10px] uppercase tracking-widest font-bold hover:bg-gold disabled:opacity-50 transition"
+                            >
+                              Confirm
+                            </button>
+                            <button 
+                              onClick={() => setAssignForm({ auctionId: null, mediatorId: "", commission: "" })} 
+                              className="py-2 px-4 border border-ink/10 text-ink text-[10px] uppercase tracking-widest font-bold hover:bg-ink/5"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => setAssignForm({ auctionId: auction.id, mediatorId: "", commission: "" })}
+                          className="w-full py-2 bg-ink text-white text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition"
+                        >
+                          Assign Auctioneer
+                        </button>
+                      )}
+                    </>
                   )}
                 </>
               )}

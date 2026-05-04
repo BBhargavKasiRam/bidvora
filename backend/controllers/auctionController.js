@@ -227,11 +227,15 @@ exports.deleteAuction = async (req, res) => {
       });
     }
 
-    // 2. Delete related records (manual cascade)
+    // 2. Delete related records in the correct dependency order
+    await db.query("DELETE FROM muted_users WHERE auction_id = ?", [id]);
+    await db.query("DELETE FROM mediator_actions WHERE auction_id = ?", [id]);
+    await db.query("DELETE FROM chat_messages WHERE auction_id = ?", [id]);
+    await db.query("DELETE FROM mediator_messages WHERE auction_id = ?", [id]);
+    await db.query("DELETE FROM proxy_bids WHERE auction_id = ?", [id]);
     await db.query("DELETE FROM bids WHERE auction_id = ?", [id]);
     await db.query("DELETE FROM transactions WHERE auction_id = ?", [id]);
     await db.query("DELETE FROM watchlist WHERE auction_id = ?", [id]);
-    await db.query("DELETE FROM media WHERE auction_id = ?", [id]);
     await db.query("DELETE FROM auctions WHERE id = ?", [id]);
 
     return res.json({ message: "Listing deleted successfully" });

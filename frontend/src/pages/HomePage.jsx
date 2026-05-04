@@ -9,7 +9,10 @@ export const HomePage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get("/auctions?status=active").then(setAuctions).finally(() => setLoading(false));
+    api.get("/auctions?status=active")
+      .then(setAuctions)
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return (

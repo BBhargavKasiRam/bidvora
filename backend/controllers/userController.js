@@ -3,7 +3,6 @@ const db = require("../config/db");
 exports.getMediators = async (req, res) => {
   try {
     const { search } = req.query;
-    console.log(`[getMediators] Search term: "${search || ''}"`);
     
     // Use TRIM() and lower() for more robust matching
     let sql = `
@@ -26,8 +25,6 @@ exports.getMediators = async (req, res) => {
     sql += " ORDER BY (total_assignments + items_sold) DESC, rating DESC";
 
     const [results] = await db.query(sql, params);
-    
-    console.log(`[getMediators] Found ${results.length} auctioneers for term "${search || ''}"`);
     res.json(results);
   } catch (err) {
     console.error("DB ERROR in getMediators:", err);
