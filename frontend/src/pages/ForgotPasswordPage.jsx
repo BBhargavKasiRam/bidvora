@@ -24,7 +24,7 @@ export const ForgotPasswordPage = () => {
       const res = await api.post("/auth/forgot-password", { email });
       setMessage(res.message);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Failed to send reset email");
+      setError(err.message || "Failed to send reset email");
     } finally {
       setLoading(false);
     }

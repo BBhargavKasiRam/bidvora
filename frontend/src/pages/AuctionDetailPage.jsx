@@ -753,7 +753,7 @@ export const AuctionDetailPage = () => {
     }
     try {
       setProxyLoading(true);
-      await api.post("/proxy-bids", {
+      await api.post("/bids/proxy", {
         auction_id: Number(id),
         max_bid_amount: amount
       });
@@ -761,7 +761,7 @@ export const AuctionDetailPage = () => {
       setSuccess(`Auto-bidding activated up to $${amount.toLocaleString()}`);
       setProxyBidLimit("");
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to set proxy bid");
+      setError(err.message || "Failed to set proxy bid");
     } finally {
       setProxyLoading(false);
     }
@@ -770,7 +770,7 @@ export const AuctionDetailPage = () => {
   const handleRemoveProxyBid = async () => {
     try {
       setProxyLoading(true);
-      await api.delete(`/proxy-bids/${id}`);
+      await api.delete(`/bids/proxy/${id}`);
       setActiveProxyBid(null);
       setSuccess("Auto-bidding disabled.");
     } catch (err) {

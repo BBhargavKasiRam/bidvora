@@ -57,10 +57,11 @@ export const Navbar = () => {
             </div>
             <button 
               onClick={() => { logout(); navigate("/login"); }}
-              className="p-2 hover:bg-ink/5 rounded-full transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-[10px] uppercase tracking-widest font-bold hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-100 rounded-full transition-all"
               title="Logout"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
+              <span className="hidden md:inline">Logout</span>
             </button>
           </div>
         ) : (

@@ -46,7 +46,7 @@ export const ResetPasswordPage = () => {
         navigate("/login");
       }, 3000);
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "Failed to reset password");
+      setError(err.message || "Failed to reset password");
     } finally {
       setLoading(false);
     }
