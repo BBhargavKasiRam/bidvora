@@ -398,9 +398,13 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
           height: { ideal: 720 }
         },
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl: { ideal: true },
+          googEchoCancellation: { ideal: true },
+          googAutoGainControl: { ideal: true },
+          googNoiseSuppression: { ideal: true },
+          googHighpassFilter: { ideal: true },
           sampleRate: 44100
         },
       });

@@ -9,6 +9,7 @@ export const PrivateChat = ({ auctionId }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
     api.get(`/auctions/${auctionId}/mediator-messages`)
@@ -32,7 +33,9 @@ export const PrivateChat = ({ auctionId }) => {
   }, [auctionId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const sendMessage = async (e) => {
@@ -69,7 +72,7 @@ export const PrivateChat = ({ auctionId }) => {
       </div>
       
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-paper/40">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-paper/40">
         {messages.map((msg) => {
           const isMe = msg.senderId === user?.id;
           return (
