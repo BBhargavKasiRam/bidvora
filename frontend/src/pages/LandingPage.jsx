@@ -29,11 +29,11 @@ export const LandingPage = () => {
             transition={{ duration: 0.8 }}
           >
             <span className="text-[10px] uppercase tracking-[0.5em] text-accent glow-text font-bold mb-6 block">Est. 2026</span>
-            <h1 className="text-8xl md:text-9xl font-serif text-ink mb-8 tracking-tighter leading-none glow-text">
+            <h1 className="text-8xl md:text-9xl font-serif text-white mb-8 tracking-tighter leading-none glow-text">
               The Art of <br />
               <span className="italic text-accent">Acquisition</span>
             </h1>
-            <p className="text-ink/70 text-lg font-light tracking-widest uppercase mb-12 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-white/80 text-lg font-light tracking-widest uppercase mb-12 max-w-2xl mx-auto leading-relaxed">
               Access the world's most exclusive auctions. Rare masterpieces, timeless treasures, and digital artifacts curated for the discerning collector.
             </p>
             <div className="flex flex-col md:flex-row items-center justify-center gap-6">
@@ -46,7 +46,7 @@ export const LandingPage = () => {
               </Link>
               <Link 
                 to="/login" 
-                className="px-12 py-5 glass-button text-ink text-xs uppercase tracking-[0.3em] font-bold hover:bg-white/10 transition-all rounded-full hover-lift"
+                className="px-12 py-5 glass-button text-white text-xs uppercase tracking-[0.3em] font-bold hover:bg-white/10 transition-all rounded-full hover-lift"
               >
                 Member Login
               </Link>
