@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
 import { Navbar } from "./components/Navbar";
 import { Gavel, Loader2 } from "lucide-react";
@@ -79,16 +79,18 @@ export default function App() {
                 {/* General Routes */}
                 <Route path="/gallery" element={<HomePage />} />
                 <Route path="/browse" element={<HomePage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/create" element={<CreateAuctionPage />} />
-                <Route path="/my-consignments" element={<MyConsignmentsPage />} />
-                <Route path="/auction/:id" element={<AuctionDetailPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/orders" element={<OrdersPage />} />
-                <Route path="/seller-analytics" element={<SellerAnalyticsPage />} />
-                <Route path="/mediator-dashboard" element={<MediatorDashboardPage />} />
+                <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
+                <Route path="/register" element={!isAuthenticated ? <RegisterPage /> : <Navigate to="/" />} />
+                <Route path="/forgot-password" element={!isAuthenticated ? <ForgotPasswordPage /> : <Navigate to="/" />} />
+                
+                {/* Protected Routes */}
+                <Route path="/create" element={isAuthenticated ? <CreateAuctionPage /> : <Navigate to="/login" />} />
+                <Route path="/my-consignments" element={isAuthenticated ? <MyConsignmentsPage /> : <Navigate to="/login" />} />
+                <Route path="/auction/:id" element={isAuthenticated ? <AuctionDetailPage /> : <Navigate to="/login" />} />
+                <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/login" />} />
+                <Route path="/orders" element={isAuthenticated ? <OrdersPage /> : <Navigate to="/login" />} />
+                <Route path="/seller-analytics" element={isAuthenticated ? <SellerAnalyticsPage /> : <Navigate to="/login" />} />
+                <Route path="/mediator-dashboard" element={isAuthenticated ? <MediatorDashboardPage /> : <Navigate to="/login" />} />
               </Routes>
             </AnimatePresence>
           </Suspense>
