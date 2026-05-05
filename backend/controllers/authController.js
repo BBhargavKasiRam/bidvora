@@ -189,7 +189,7 @@ exports.socialLogin = async (req, res) => {
       const token = jwt.sign(
         { id: user.id, role: user.role },
         SECRET,
-        { expiresIn: "1d" }
+        { expiresIn: "7d" }
       );
 
       const { password: _, ...userWithoutPassword } = user;
@@ -205,7 +205,7 @@ exports.socialLogin = async (req, res) => {
       const token = jwt.sign(
         { id: newId, role: "buyer" },
         SECRET,
-        { expiresIn: "1d" }
+        { expiresIn: "7d" }
       );
 
       res.json({
