@@ -136,6 +136,11 @@ exports.getAuctions = async (req, res) => {
     let query = `SELECT a.*, u.name AS seller_name FROM auctions a JOIN users u ON a.seller_id = u.id WHERE 1=1`;
     let params = [];
 
+    // 🔥 Restrict public visibility unless assigned auctioneer has accepted
+    if (!seller_id && !mediator_id) {
+      query += ` AND (a.mediator_status = 'accepted' OR a.mediator_status IS NULL)`;
+    }
+
     if (status === 'active') {
       query += ` AND a.end_time > UTC_TIMESTAMP()`;
     } else if (status === 'ended') {
