@@ -3,13 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
-import { signInWithGoogle } from "../lib/firebase";
+import { signInWithGoogle, signInWithMicrosoft, signInWithFacebook } from "../lib/firebase";
 
 export const LoginPage = () => {
   const [step, setStep] = useState(1);
   const [animating, setAnimating] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(null); // 'google', 'microsoft', 'facebook'
   const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
@@ -113,27 +113,31 @@ export const LoginPage = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    if (googleLoading) return;
+  const handleSocialLogin = async (providerName) => {
+    if (socialLoading) return;
     try {
-      setGoogleLoading(true);
+      setSocialLoading(providerName);
       setError("");
-      const googleUser = await signInWithGoogle();
       
-      const res = await api.post("/auth/google-login", {
-        email: googleUser.email,
-        name: googleUser.displayName,
-        profile_image: googleUser.photoURL,
-        uid: googleUser.uid
+      let socialUser;
+      if (providerName === 'google') socialUser = await signInWithGoogle();
+      else if (providerName === 'microsoft') socialUser = await signInWithMicrosoft();
+      else if (providerName === 'facebook') socialUser = await signInWithFacebook();
+      
+      const res = await api.post("/auth/social-login", {
+        email: socialUser.email,
+        name: socialUser.displayName,
+        profile_image: socialUser.photoURL,
+        uid: socialUser.uid
       });
 
       login(res.token, res.user);
       navigate("/");
     } catch (err) {
       console.error(err);
-      setError("Google sign-in failed. Please try again.");
+      setError(`${providerName.charAt(0).toUpperCase() + providerName.slice(1)} sign-in failed. Please try again.`);
     } finally {
-      setGoogleLoading(false);
+      setSocialLoading(null);
     }
   };
 
@@ -166,20 +170,52 @@ export const LoginPage = () => {
         )}
 
         <div className="space-y-6">
-          <button
-            onClick={handleGoogleLogin}
-            disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-ink/10 text-ink shadow-[0_2px_8px_rgba(42,35,24,0.08)] hover:shadow-[0_4px_16px_rgba(42,35,24,0.12)] hover:border-ink/20 transition-all hover-lift group rounded-lg"
-          >
-            {googleLoading ? (
-              <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
-            )}
-            <span className="text-[10px] uppercase tracking-widest font-bold text-ink/70 group-hover:text-ink transition-colors">
-              Continue with Google
-            </span>
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => handleSocialLogin('google')}
+              disabled={!!socialLoading}
+              className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-ink/10 text-ink shadow-[0_2px_8px_rgba(42,35,24,0.08)] hover:shadow-[0_4px_16px_rgba(42,35,24,0.12)] hover:border-ink/20 transition-all hover-lift group rounded-lg"
+            >
+              {socialLoading === 'google' ? (
+                <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+              )}
+              <span className="text-[10px] uppercase tracking-widest font-bold text-ink/70 group-hover:text-ink transition-colors">
+                Continue with Google
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleSocialLogin('microsoft')}
+              disabled={!!socialLoading}
+              className="w-full flex items-center justify-center gap-3 py-4 bg-[#2F2F2F] border border-[#2F2F2F] text-white shadow-[0_2px_8px_rgba(47,47,47,0.2)] hover:shadow-[0_4px_16px_rgba(47,47,47,0.4)] transition-all hover-lift group rounded-lg"
+            >
+              {socialLoading === 'microsoft' ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" className="w-5 h-5" alt="Microsoft" />
+              )}
+              <span className="text-[10px] uppercase tracking-widest font-bold text-white transition-colors">
+                Continue with Microsoft
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleSocialLogin('facebook')}
+              disabled={!!socialLoading}
+              className="w-full flex items-center justify-center gap-3 py-4 bg-[#1877F2] border border-[#1877F2] text-white shadow-[0_2px_8px_rgba(24,119,242,0.2)] hover:shadow-[0_4px_16px_rgba(24,119,242,0.4)] transition-all hover-lift group rounded-lg"
+            >
+              {socialLoading === 'facebook' ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" className="w-5 h-5 filter invert" alt="Facebook" />
+              )}
+              <span className="text-[10px] uppercase tracking-widest font-bold text-white transition-colors">
+                Continue with Facebook
+              </span>
+            </button>
+          </div>
 
           <div className="relative flex items-center py-4">
             <div className="flex-grow border-t border-ink/10"></div>

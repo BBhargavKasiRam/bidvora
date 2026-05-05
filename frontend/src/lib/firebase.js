@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, OAuthProvider, FacebookAuthProvider, signInWithPopup } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCvLydrddU5MSGjMfjURUd12WNB09LpVRU",
@@ -13,19 +13,37 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
 export const googleProvider = new GoogleAuthProvider();
+export const microsoftProvider = new OAuthProvider('microsoft.com');
+export const facebookProvider = new FacebookAuthProvider();
 
 export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    // This gives you a Google Access Token. You can use it to access the Google API.
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    const token = credential.accessToken;
-    // The signed-in user info.
-    const user = result.user;
-    return user;
+    return result.user;
   } catch (error) {
     console.error("Google Sign-In Error:", error);
+    throw error;
+  }
+};
+
+export const signInWithMicrosoft = async () => {
+  try {
+    const result = await signInWithPopup(auth, microsoftProvider);
+    return result.user;
+  } catch (error) {
+    console.error("Microsoft Sign-In Error:", error);
+    throw error;
+  }
+};
+
+export const signInWithFacebook = async () => {
+  try {
+    const result = await signInWithPopup(auth, facebookProvider);
+    return result.user;
+  } catch (error) {
+    console.error("Facebook Sign-In Error:", error);
     throw error;
   }
 };

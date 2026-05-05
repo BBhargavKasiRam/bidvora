@@ -14,7 +14,7 @@ const {
   verifyOTP,
   sendRegisterOTP,
   resetPassword,
-  googleLogin
+  socialLogin
 } = require("../controllers/authController");
 
 // Multer memory storage
@@ -30,6 +30,6 @@ router.put("/profile", authMiddleware, upload.single("profile_image"), updatePro
 router.post("/forgot-password", forgotPassword);
 router.post("/verify-otp", verifyOTP);
 router.post("/reset-password", resetPassword);
-router.post("/google-login", googleLogin);
+router.post("/social-login", socialLogin);
 
 module.exports = router;

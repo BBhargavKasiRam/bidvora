@@ -167,8 +167,8 @@ exports.login = async (req, res) => {
   }
 };
 
-// 🔐 GOOGLE LOGIN
-exports.googleLogin = async (req, res) => {
+// 🔐 SOCIAL LOGIN (Google, Microsoft, Facebook)
+exports.socialLogin = async (req, res) => {
   try {
     let { email, name, profile_image, uid } = req.body;
     email = email.trim().toLowerCase().replace(/\s+/g, "");
@@ -214,7 +214,7 @@ exports.googleLogin = async (req, res) => {
       });
     }
   } catch (err) {
-    console.error("Google Login error:", err);
+    console.error("Social Login error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
