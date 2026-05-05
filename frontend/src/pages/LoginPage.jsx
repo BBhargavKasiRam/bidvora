@@ -113,6 +113,28 @@ export const LoginPage = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    if (socialLoading) return;
+    try {
+      setSocialLoading('google');
+      setError("");
+      const googleUser = await signInWithGoogle();
+      const res = await api.post("/auth/social-login", {
+        email: googleUser.email,
+        name: googleUser.displayName,
+        profile_image: googleUser.photoURL,
+        uid: googleUser.uid,
+      });
+      login(res.token, res.user);
+      navigate("/");
+    } catch (err) {
+      console.error(err);
+      setError("Google sign-in failed. Please try again.");
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
   const handleSocialLogin = async (providerName) => {
     if (socialLoading) return;
     try {
@@ -120,8 +142,7 @@ export const LoginPage = () => {
       setError("");
       
       let socialUser;
-      if (providerName === 'google') socialUser = await signInWithGoogle();
-      else if (providerName === 'microsoft') socialUser = await signInWithMicrosoft();
+      if (providerName === 'microsoft') socialUser = await signInWithMicrosoft();
       else if (providerName === 'facebook') socialUser = await signInWithFacebook();
       
       const res = await api.post("/auth/social-login", {
@@ -172,7 +193,7 @@ export const LoginPage = () => {
         <div className="space-y-6">
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => handleSocialLogin('google')}
+              onClick={handleGoogleLogin}
               disabled={!!socialLoading}
               className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-ink/10 text-ink shadow-[0_2px_8px_rgba(42,35,24,0.08)] hover:shadow-[0_4px_16px_rgba(42,35,24,0.12)] hover:border-ink/20 transition-all hover-lift group rounded-lg"
             >
