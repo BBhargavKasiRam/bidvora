@@ -32,6 +32,7 @@ import { useAuth } from "../context/AuthContext";
 import { getSocket } from "../lib/socket";
 import { LiveChat } from "../components/LiveChat";
 import { PrivateChat } from "../components/PrivateChat";
+import { getServerNow } from "../hooks/useServerTime";
 
 // ─── Anti-snipe Banner ────────────────────────────────────────────────────────
 const AntiSnipeBanner = ({ wasExtended, extensionMinutes }) => {
@@ -88,7 +89,7 @@ const CountdownTimer = ({ endTime, onExtended }) => {
 
   useEffect(() => {
     const calc = () => {
-      const diff = new Date(currentEnd) - new Date();
+      const diff = new Date(currentEnd) - getServerNow();
       if (diff <= 0) {
         setTimeLeft("Ended");
         setIsUrgent(false);
@@ -801,7 +802,7 @@ export const AuctionDetailPage = () => {
   const isAuctioneer = user && auction && user.id === auction.mediator_id;
   const isBuyer = user && auction && user.id !== auction.seller_id && user.id !== auction.mediator_id;
   const isEnded = auction && currentEndTime
-    ? new Date(currentEndTime) <= new Date()
+    ? new Date(currentEndTime) <= getServerNow()
     : false;
   const minBid = auction ? Number(auction.current_price) + 1 : 1;
 

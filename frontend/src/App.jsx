@@ -4,6 +4,7 @@ import { AnimatePresence } from "motion/react";
 import { Navbar } from "./components/Navbar";
 import { Gavel, Loader2 } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
+import { useServerTime } from "./hooks/useServerTime";
 
 // Lazy load pages for performance and to isolate side-effects (like Stripe)
 const HomePage = lazy(() => import("./pages/HomePage").then(m => ({ default: m.HomePage })));
@@ -31,6 +32,7 @@ const PageLoader = () => (
 
 export default function App() {
   const { isAuthenticated, user } = useAuth();
+  useServerTime();
 
   return (
     <BrowserRouter>

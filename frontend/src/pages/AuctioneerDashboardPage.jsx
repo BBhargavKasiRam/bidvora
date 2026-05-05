@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { Shield, AlertTriangle, Eye, Clock, CheckCircle2, XCircle, Search, Video } from "lucide-react";
 import { api } from "../lib/api";
 import { AuctionCard } from "../components/AuctionCard";
+import { getServerNow } from "../hooks/useServerTime";
 
 export const AuctioneerDashboardPage = () => {
   const { user, isAuthenticated } = useAuth();
@@ -118,7 +119,7 @@ export const AuctioneerDashboardPage = () => {
                 <div className="mt-4 p-4 border border-ink/10 bg-white shadow-sm flex flex-col gap-3">
                   <div className="flex justify-between items-center text-[10px] uppercase tracking-widest text-ink/60 border-b border-ink/5 pb-2">
                     <span>Flags: <strong className={auction.flag_count > 0 ? 'text-red-500' : 'text-green-600'}>{auction.flag_count}</strong></span>
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(auction.end_time) > new Date() ? 'Active' : 'Ending'}</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(auction.end_time) > getServerNow() ? 'Active' : 'Ending'}</span>
                   </div>
                   <Link 
                     to={`/auction/${auction.id}`}

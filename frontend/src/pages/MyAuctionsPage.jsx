@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { AuctionCard } from "../components/AuctionCard";
+import { getServerNow } from "../hooks/useServerTime";
 
 export const MyAuctionsPage = () => {
   const { user } = useAuth();
@@ -82,7 +83,7 @@ export const MyAuctionsPage = () => {
                 </div>
               ) : (
                 <>
-                  {new Date(auction.end_time) <= new Date() ? (
+                  {new Date(auction.end_time) <= getServerNow() ? (
                     <div className="text-xs text-ink/40 font-bold uppercase tracking-widest flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-ink/20"></span> Auction Ended
                     </div>

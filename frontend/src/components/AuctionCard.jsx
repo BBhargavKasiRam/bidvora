@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { Clock, ChevronRight, Edit3, Video, Star } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
+import { getServerNow } from "../hooks/useServerTime";
 
 export const AuctionCard = ({ auction }) => {
   const [timeLeft, setTimeLeft] = useState("");
@@ -12,11 +13,11 @@ export const AuctionCard = ({ auction }) => {
   const { user } = useAuth();
 
   const isConsignor = user && auction && user.id === auction.seller_id;
-  const isEnded = auction && new Date(auction.end_time) <= new Date();
+  const isEnded = auction && new Date(auction.end_time) <= getServerNow();
 
   useEffect(() => {
     const timer = setInterval(() => {
-      const now = new Date().getTime();
+      const now = getServerNow();
       const end = new Date(auction.end_time).getTime();
       const diff = end - now;
 

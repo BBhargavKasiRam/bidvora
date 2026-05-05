@@ -137,9 +137,9 @@ exports.getAuctions = async (req, res) => {
     let params = [];
 
     if (status === 'active') {
-      query += ` AND a.end_time > NOW()`;
+      query += ` AND a.end_time > UTC_TIMESTAMP()`;
     } else if (status === 'ended') {
-      query += ` AND a.end_time <= NOW()`;
+      query += ` AND a.end_time <= UTC_TIMESTAMP()`;
     }
 
     if (seller_id) {
@@ -393,11 +393,11 @@ exports.getSellerAnalytics = async (req, res) => {
     const statsSql = `
       SELECT 
         COUNT(id) AS total_auctions,
-        SUM(CASE WHEN end_time <= NOW() THEN 1 ELSE 0 END) AS total_sold,
-        SUM(CASE WHEN end_time > NOW() THEN 1 ELSE 0 END) AS active_auctions,
-        SUM(CASE WHEN end_time <= NOW() AND current_price > starting_price THEN current_price ELSE 0 END) AS total_revenue,
-        AVG(CASE WHEN end_time <= NOW() AND current_price > starting_price THEN current_price ELSE NULL END) AS average_sale_price,
-        COUNT(CASE WHEN end_time <= NOW() THEN 1 END) AS ended_auctions
+        SUM(CASE WHEN end_time <= UTC_TIMESTAMP() THEN 1 ELSE 0 END) AS total_sold,
+        SUM(CASE WHEN end_time > UTC_TIMESTAMP() THEN 1 ELSE 0 END) AS active_auctions,
+        SUM(CASE WHEN end_time <= UTC_TIMESTAMP() AND current_price > starting_price THEN current_price ELSE 0 END) AS total_revenue,
+        AVG(CASE WHEN end_time <= UTC_TIMESTAMP() AND current_price > starting_price THEN current_price ELSE NULL END) AS average_sale_price,
+        COUNT(CASE WHEN end_time <= UTC_TIMESTAMP() THEN 1 END) AS ended_auctions
       FROM auctions
       WHERE seller_id = ?
     `;
@@ -411,8 +411,8 @@ exports.getSellerAnalytics = async (req, res) => {
         COUNT(*) AS auctions_count
       FROM auctions
       WHERE seller_id = ? 
-        AND end_time <= NOW()
-        AND end_time >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        AND end_time <= UTC_TIMESTAMP()
+        AND end_time >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 6 MONTH)
       GROUP BY month_key, month
       ORDER BY month_key ASC
     `;
@@ -421,7 +421,7 @@ exports.getSellerAnalytics = async (req, res) => {
     const topItemsSql = `
       SELECT title, current_price AS sale_price, end_time
       FROM auctions
-      WHERE seller_id = ? AND end_time <= NOW() AND current_price > starting_price
+      WHERE seller_id = ? AND end_time <= UTC_TIMESTAMP() AND current_price > starting_price
       ORDER BY current_price DESC
       LIMIT 5
     `;

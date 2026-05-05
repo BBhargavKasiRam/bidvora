@@ -81,6 +81,11 @@ app.use("/api/mediator", mediatorRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/reviews", reviewRoutes);
 
+// ─── SERVER TIME ENDPOINT (UTC clock sync for fair countdowns) ──────────────
+app.get("/api/time", (req, res) => {
+  res.json({ utc: Date.now() });
+});
+
 // Global Error Handler - MUST BE LAST
 app.use(globalErrorHandler);
 
