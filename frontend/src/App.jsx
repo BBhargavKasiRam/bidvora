@@ -19,7 +19,6 @@ const MyConsignmentsPage = lazy(() => import("./pages/MyAuctionsPage").then(m =>
 const DashboardPage = lazy(() => import("./pages/DashboardPage").then(m => ({ default: m.DashboardPage })));
 const AuctioneerDashboardPage = lazy(() => import("./pages/AuctioneerDashboardPage").then(m => ({ default: m.AuctioneerDashboardPage })));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage").then(m => ({ default: m.ForgotPasswordPage })));
-const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
 const SellerAnalyticsPage = lazy(() => import("./pages/SellerAnalyticsPage").then(m => ({ default: m.SellerAnalyticsPage })));
 const MediatorDashboardPage = lazy(() => import("./pages/MediatorDashboardPage").then(m => ({ default: m.MediatorDashboardPage })));
 
@@ -83,7 +82,6 @@ export default function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/create" element={<CreateAuctionPage />} />
                 <Route path="/my-consignments" element={<MyConsignmentsPage />} />
                 <Route path="/auction/:id" element={<AuctionDetailPage />} />

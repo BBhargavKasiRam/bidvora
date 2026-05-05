@@ -19,6 +19,7 @@ export const RegisterPage = () => {
     password: "",
     confirmPassword: "",
     role: "buyer",
+    otp: "",
   });
 
   const [error, setError] = useState("");
@@ -82,7 +83,29 @@ export const RegisterPage = () => {
       return;
     }
 
-    if (step < 3) {
+    if (step === 3) {
+      try {
+        setLoading(true);
+        await api.post("/auth/send-register-otp", {
+          email: form.email.trim().toLowerCase(),
+        });
+
+        setAnimating(true);
+        setTimeout(() => {
+          setStep(4);
+          setAnimating(false);
+        }, 200);
+
+      } catch (err) {
+        const msg = err.response?.data?.message || err.message || "Failed to send OTP";
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (step < 4) {
       setAnimating(true);
       setTimeout(() => {
         setStep((prev) => prev + 1);
@@ -98,6 +121,7 @@ export const RegisterPage = () => {
         email: form.email.trim().toLowerCase(),
         password: form.password,
         role: form.role,
+        otp: form.otp,
       });
       navigate("/login");
     } catch (err) {
@@ -280,6 +304,27 @@ export const RegisterPage = () => {
                   </div>
                 </div>
               )}
+
+              {step === 4 && (
+                <div className="text-center space-y-6">
+                  <div className="mb-8">
+                    <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Verification Code</label>
+                    <p className="text-[10px] uppercase tracking-widest text-ink/60 mb-6">Sent to {form.email}</p>
+                    <input
+                      autoFocus
+                      type="text"
+                      maxLength={6}
+                      value={form.otp}
+                      onChange={(e) => {
+                        setForm({ ...form, otp: e.target.value.replace(/\D/g, "") });
+                        setError("");
+                      }}
+                      placeholder="000000"
+                      className="w-full border-b border-ink/20 py-5 text-4xl tracking-[0.5em] text-center bg-transparent outline-none focus:border-gold transition-colors font-serif text-ink"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between items-center">
@@ -296,7 +341,7 @@ export const RegisterPage = () => {
                 className="ml-auto px-10 py-4 bg-ink text-paper text-[10px] uppercase tracking-[0.4em] hover:bg-gold transition-all font-bold shadow-[0_4px_16px_rgba(42,35,24,0.2)] hover:shadow-[0_6px_20px_rgba(197,160,89,0.4)] flex items-center justify-center gap-2 rounded"
               >
                 {loading && <div className="w-3 h-3 border border-paper border-t-transparent rounded-full animate-spin" />}
-                {step < 3 ? "Next" : "Complete"}
+                {step < 3 ? "Next" : step === 3 ? "Send OTP" : "Complete Registration"}
               </button>
             </div>
           </form>

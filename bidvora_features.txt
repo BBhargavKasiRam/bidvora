@@ -1,0 +1,58 @@
+================================================================================
+BIDVORA - FEATURE CATALOGUE
+================================================================================
+
+1. USER AUTHENTICATION & SECURITY
+---------------------------------
+* Multi-Method Login: Supports standard email/password and secure Google OAuth via Firebase.
+* Role-Based Access Control (RBAC): Distinct dashboards and permissions for Buyers, Sellers (Auctioneers), and Mediators.
+* Secure Profile Management: Personalized profiles with Cloudinary-hosted image uploads and user ratings.
+* Password Recovery: Full flow for forgot/reset password functionality.
+
+2. ADVANCED AUCTION ENGINE
+--------------------------
+* Real-Time Bidding: High-concurrency bidding system powered by Socket.io for instant updates without page refreshes.
+* Dynamic Auction Creation: Comprehensive form for sellers to list items with multiple images and descriptions.
+* Proxy Bidding: Automated bidding system that bids on behalf of the user up to their maximum limit.
+* Live Countdown: Precision timers for auction ends to encourage last-minute engagement.
+* Auction Status Tracking: Automatic transition from active to ended status with winner identification.
+
+3. REAL-TIME COMMUNICATION
+--------------------------
+* Auction Live Chat: Dedicated real-time chat for every auction listing for community engagement.
+* Private Messaging: One-on-one secure chat between users (e.g., buyers and sellers).
+* System Broadcasts: Automated global or auction-specific messages for key events like high bids or payment confirmations.
+
+4. COMMERCE & PAYMENTS
+----------------------
+* Razorpay Integration: Secure, industry-standard payment gateway for acquisition processing.
+* Global Currency Support: Built-in exchange rate engine supporting 15+ currencies (USD, INR, EUR, etc.) with real-time conversion.
+* Digital Invoicing: Automatic generation and viewing of invoices for all won auctions.
+* Transaction Records: Permanent database logging of all payment IDs and transaction details for audit trails.
+
+5. LOGISTICS & POST-AUCTION FLOW
+--------------------------------
+* Order Management: Centralized "My Orders" page for winners to track acquisitions.
+* Shipment Tracking: Real-time tracking of shipment status, courier names, and tracking numbers.
+* Seller Analytics: Advanced dashboard for sellers to monitor sales performance, items sold, and revenue trends.
+
+6. TRUST, SAFETY & MODERATION
+-----------------------------
+* Mediator System: Dedicated role for dispute resolution, auction flagging, and user moderation.
+* Moderation Tools: Capabilities to mute users, delete messages, and issue system warnings.
+* Review & Rating System: Post-transaction feedback loop where buyers can rate and review sellers.
+* Watchlist: Ability for users to "Heart" auctions to track their status and receive updates.
+
+7. PREMIUM DESIGN & EXPERIENCE
+------------------------------
+* High-End Aesthetics: Modern UI using glassmorphism, smooth animations (Framer Motion), and a curated dark-mode palette.
+* Fully Responsive: Optimized experience across desktop, tablet, and mobile devices.
+* Real-Time Notifications: Toast notifications for bids, messages, and status changes.
+* Visual Search: Dedicated landing and home pages with featured and trending auctions.
+
+================================================================================
+BIDVORA TECHNICAL STACK SUMMARY:
+- Frontend: React.js, Vite, Framer Motion, Lucide-React, Tailwind CSS.
+- Backend: Node.js, Express, Socket.io, MySQL2.
+- Infrastructure: Cloudinary (Media), Firebase (Auth), Razorpay (Payments).
+================================================================================
