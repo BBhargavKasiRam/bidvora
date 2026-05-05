@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
 import { Navbar } from "./components/Navbar";
+import { ScrollToTop } from "./components/ScrollToTop";
 import { Gavel, Loader2 } from "lucide-react";
 import { useAuth } from "./context/AuthContext";
 import { useServerTime } from "./hooks/useServerTime";
@@ -35,6 +36,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <div className="min-h-screen flex flex-col bg-paper">
         <Navbar />
 

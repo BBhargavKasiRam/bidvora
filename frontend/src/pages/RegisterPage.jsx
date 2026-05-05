@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AlertCircle, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, ShieldCheck, RefreshCw } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import { signInWithGoogle, signInWithMicrosoft, signInWithFacebook } from "../lib/firebase";
@@ -12,6 +12,12 @@ export const RegisterPage = () => {
   const [socialLoading, setSocialLoading] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // OTP state
+  const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""]);
+  const [otpResendCooldown, setOtpResendCooldown] = useState(0);
+  const [otpSent, setOtpSent] = useState(false);
+  const otpRefs = useRef([]);
 
   const [form, setForm] = useState({
     name: "",
@@ -29,6 +35,13 @@ export const RegisterPage = () => {
   const emailRegex = /^(?!.*\.\.)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
+  // Countdown for OTP resend button
+  useEffect(() => {
+    if (otpResendCooldown <= 0) return;
+    const t = setInterval(() => setOtpResendCooldown((c) => c - 1), 1000);
+    return () => clearInterval(t);
+  }, [otpResendCooldown]);
+
   const validateStep = () => {
     if (step === 1) {
       if (!form.name.trim()) return "Name is required";
@@ -40,6 +53,10 @@ export const RegisterPage = () => {
       if (!emailRegex.test(email)) return "Enter valid email";
     }
     if (step === 3) {
+      const otp = otpValues.join("");
+      if (otp.length < 6) return "Please enter the 6-digit OTP";
+    }
+    if (step === 4) {
       if (!form.password) return "Password is required";
       if (!passwordRegex.test(form.password))
         return "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character";
@@ -50,55 +67,70 @@ export const RegisterPage = () => {
     return null;
   };
 
+  const goToStep = (nextStep) => {
+    setAnimating(true);
+    setTimeout(() => {
+      setStep(nextStep);
+      setAnimating(false);
+    }, 200);
+  };
+
+  // Send OTP to backend (logged in console)
+  const sendOtp = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      await api.post("/auth/send-otp", {
+        email: form.email.trim().toLowerCase(),
+        purpose: "register",
+      });
+      setOtpSent(true);
+      setOtpResendCooldown(60);
+      setOtpValues(["", "", "", "", "", ""]);
+      setTimeout(() => otpRefs.current[0]?.focus(), 300);
+    } catch (err) {
+      setError(err.message || "Failed to send OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleNext = async () => {
     if (loading) return;
-
     const err = validateStep();
-    if (err) {
-      setError(err);
-      return;
-    }
-
+    if (err) { setError(err); return; }
     setError("");
 
     if (step === 2) {
+      // Check email availability then send OTP
       try {
         setLoading(true);
         await api.post("/auth/check-register-email", {
           email: form.email.trim().toLowerCase(),
         });
-
-        setAnimating(true);
-        setTimeout(() => {
-          setStep(3);
-          setAnimating(false);
-        }, 200);
-
+        // Email is free — send OTP and move to step 3
+        await sendOtp();
+        goToStep(3);
       } catch (err) {
-        const msg = err.response?.data?.message || err.message || "Email already registered";
+        const msg = err.message || "Email already registered";
         setError(msg);
-      } finally {
         setLoading(false);
       }
       return;
     }
 
     if (step === 3) {
+      // Verify OTP
       try {
         setLoading(true);
-        await api.post("/auth/send-register-otp", {
+        await api.post("/auth/verify-otp", {
           email: form.email.trim().toLowerCase(),
+          otp: otpValues.join(""),
+          purpose: "register",
         });
-
-        setAnimating(true);
-        setTimeout(() => {
-          setStep(4);
-          setAnimating(false);
-        }, 200);
-
+        goToStep(4);
       } catch (err) {
-        const msg = err.response?.data?.message || err.message || "Failed to send OTP";
-        setError(msg);
+        setError(err.message || "Invalid OTP");
       } finally {
         setLoading(false);
       }
@@ -106,14 +138,11 @@ export const RegisterPage = () => {
     }
 
     if (step < 4) {
-      setAnimating(true);
-      setTimeout(() => {
-        setStep((prev) => prev + 1);
-        setAnimating(false);
-      }, 200);
+      goToStep(step + 1);
       return;
     }
 
+    // Step 4 — Final Registration
     try {
       setLoading(true);
       await api.post("/auth/register", {
@@ -121,11 +150,11 @@ export const RegisterPage = () => {
         email: form.email.trim().toLowerCase(),
         password: form.password,
         role: form.role,
-        otp: form.otp,
+        otp: otpValues.join(""),
       });
       navigate("/login");
     } catch (err) {
-      const msg = err.response?.data?.message || "Registration failed";
+      const msg = err.message || "Registration failed";
       setError(msg);
     } finally {
       setLoading(false);
@@ -163,17 +192,48 @@ export const RegisterPage = () => {
   const handleBack = () => {
     if (loading) return;
     setError("");
-    setAnimating(true);
-    setTimeout(() => {
-      setStep((prev) => prev - 1);
-      setAnimating(false);
-    }, 200);
+    if (step === 3) {
+      // Going back from OTP step — reset OTP
+      setOtpValues(["", "", "", "", "", ""]);
+      setOtpSent(false);
+    }
+    goToStep(step - 1);
   };
+
+  // OTP input handlers
+  const handleOtpChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return; // digits only
+    const newOtp = [...otpValues];
+    newOtp[index] = value.slice(-1);
+    setOtpValues(newOtp);
+    setError("");
+    if (value && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !otpValues[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (e.key === "Enter") handleNext();
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted.length === 6) {
+      setOtpValues(pasted.split(""));
+      otpRefs.current[5]?.focus();
+    }
+  };
+
+  const stepLabels = ["Name", "Email", "Verify", "Setup"];
 
   return (
     <div className="h-[calc(100vh-80px)] flex items-center justify-center relative px-4 overflow-hidden">
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
-      <div className="max-w-xl w-full p-14 glass-card relative overflow-hidden z-10 shadow-[0_20px_60px_rgba(42,35,24,0.15)]">
+      <div className="max-w-xl w-full p-14 glass-card relative overflow-hidden z-10 shadow-[0_20px_60px_rgba(42,35,24,0.15)] bg-white rounded-2xl border border-ink/5">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold/40 via-gold to-gold/40"></div>
 
         <div className="mb-10 text-center">
@@ -181,100 +241,152 @@ export const RegisterPage = () => {
           <p className="text-[10px] uppercase tracking-[0.2em] text-ink/50 font-bold mt-2">Create your professional profile</p>
         </div>
 
+        {/* Step Indicators */}
+        <div className="flex items-center justify-center mb-8 gap-2">
+          {stepLabels.map((label, i) => (
+            <React.Fragment key={i}>
+              <div className="flex flex-col items-center gap-1">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all ${
+                    step === i + 1
+                      ? "bg-gold border-gold text-white shadow-[0_0_12px_rgba(197,160,89,0.5)]"
+                      : step > i + 1
+                      ? "bg-ink border-ink text-paper"
+                      : "border-ink/20 text-ink/30"
+                  }`}
+                >
+                  {step > i + 1 ? "✓" : i + 1}
+                </div>
+                <span className={`text-[8px] uppercase tracking-widest font-bold ${step === i + 1 ? "text-gold" : "text-ink/30"}`}>
+                  {label}
+                </span>
+              </div>
+              {i < stepLabels.length - 1 && (
+                <div className={`h-px flex-1 mb-4 transition-all ${step > i + 1 ? "bg-ink/40" : "bg-ink/10"}`} />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
         {error && (
           <div className="mb-8 p-4 bg-red-50 text-red-700 text-[11px] uppercase tracking-widest font-bold flex items-center gap-2 border-l-4 border-red-600 rounded-r">
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
             {error}
           </div>
         )}
 
         <div className="space-y-6">
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={() => handleSocialSignup('google')}
-              disabled={!!socialLoading}
-              className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-ink/10 text-ink shadow-[0_2px_8px_rgba(42,35,24,0.08)] hover:shadow-[0_4px_16px_rgba(42,35,24,0.12)] hover:border-ink/20 transition-all hover-lift group rounded-lg"
-            >
-              {socialLoading === 'google' ? (
-                <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
-              )}
-              <span className="text-[10px] uppercase tracking-widest font-bold text-ink/70 group-hover:text-ink transition-colors">
-                Register with Google
-              </span>
-            </button>
+          {step === 1 && (
+            <>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => handleSocialSignup('google')}
+                  disabled={!!socialLoading}
+                  className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-ink/10 text-ink shadow-[0_2px_8px_rgba(42,35,24,0.08)] hover:shadow-[0_4px_16px_rgba(42,35,24,0.12)] hover:border-ink/20 transition-all hover-lift group rounded-lg"
+                >
+                  {socialLoading === 'google' ? (
+                    <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+                  )}
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-ink/70 group-hover:text-ink transition-colors">
+                    Register with Google
+                  </span>
+                </button>
+              </div>
 
-            <button
-              onClick={() => handleSocialSignup('microsoft')}
-              disabled={!!socialLoading}
-              className="w-full flex items-center justify-center gap-3 py-4 bg-[#2F2F2F] border border-[#2F2F2F] text-white shadow-[0_2px_8px_rgba(47,47,47,0.2)] hover:shadow-[0_4px_16px_rgba(47,47,47,0.4)] transition-all hover-lift group rounded-lg"
-            >
-              {socialLoading === 'microsoft' ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" className="w-5 h-5" alt="Microsoft" />
-              )}
-              <span className="text-[10px] uppercase tracking-widest font-bold text-white transition-colors">
-                Register with Microsoft
-              </span>
-            </button>
-
-            <button
-              onClick={() => handleSocialSignup('facebook')}
-              disabled={!!socialLoading}
-              className="w-full flex items-center justify-center gap-3 py-4 bg-[#1877F2] border border-[#1877F2] text-white shadow-[0_2px_8px_rgba(24,119,242,0.2)] hover:shadow-[0_4px_16px_rgba(24,119,242,0.4)] transition-all hover-lift group rounded-lg"
-            >
-              {socialLoading === 'facebook' ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" className="w-5 h-5 filter invert" alt="Facebook" />
-              )}
-              <span className="text-[10px] uppercase tracking-widest font-bold text-white transition-colors">
-                Register with Facebook
-              </span>
-            </button>
-          </div>
-
-          <div className="relative flex items-center py-4">
-            <div className="flex-grow border-t border-ink/10"></div>
-            <span className="flex-shrink mx-4 text-[9px] uppercase tracking-widest font-bold text-ink/40">or sign up manually</span>
-            <div className="flex-grow border-t border-ink/10"></div>
-          </div>
+              <div className="relative flex items-center py-4">
+                <div className="flex-grow border-t border-ink/10"></div>
+                <span className="flex-shrink mx-4 text-[9px] uppercase tracking-widest font-bold text-ink/40">or sign up manually</span>
+                <div className="flex-grow border-t border-ink/10"></div>
+              </div>
+            </>
+          )}
 
           <form onSubmit={(e) => e.preventDefault()} className="space-y-10">
             <div className={`transition-all duration-200 ${animating ? "opacity-0 translate-x-4" : "opacity-100"}`}>
+              
+              {/* Step 1: Name */}
               {step === 1 && (
                 <div>
                   <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Full Name</label>
                   <input
                     autoFocus
                     value={form.name}
-                    onChange={(e) => {
-                      setForm({ ...form, name: e.target.value.trimStart() });
-                      setError("");
-                    }}
+                    onChange={(e) => { setForm({ ...form, name: e.target.value.trimStart() }); setError(""); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleNext()}
                     className="w-full border-b border-ink/20 py-5 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                   />
                 </div>
               )}
 
+              {/* Step 2: Email */}
               {step === 2 && (
                 <div>
                   <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Email Address</label>
                   <input
                     autoFocus
+                    type="email"
                     value={form.email}
-                    onChange={(e) => {
-                      setForm({ ...form, email: e.target.value.trimStart() });
-                      setError("");
-                    }}
+                    onChange={(e) => { setForm({ ...form, email: e.target.value.trimStart() }); setError(""); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleNext()}
                     className="w-full border-b border-ink/20 py-5 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                   />
+                  <p className="text-[10px] text-ink/40 mt-3 uppercase tracking-widest">
+                    An OTP will be displayed in the backend console to verify your email.
+                  </p>
                 </div>
               )}
 
+              {/* Step 3: OTP Verification */}
               {step === 3 && (
+                <div className="space-y-6">
+                  <div className="flex flex-col items-center gap-2 mb-4">
+                    <div className="w-14 h-14 bg-gold/10 rounded-full flex items-center justify-center mb-2">
+                      <ShieldCheck className="w-7 h-7 text-gold" />
+                    </div>
+                    <p className="text-sm font-serif text-ink text-center">Check the backend console</p>
+                    <p className="text-[10px] uppercase tracking-widest text-ink/50 text-center">
+                      Enter the 6-digit OTP shown in the server logs
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 justify-center" onPaste={handleOtpPaste}>
+                    {otpValues.map((val, i) => (
+                      <input
+                        key={i}
+                        ref={(el) => (otpRefs.current[i] = el)}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={val}
+                        onChange={(e) => handleOtpChange(i, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                        className={`w-12 h-14 text-center text-2xl font-bold border-2 rounded-lg outline-none transition-all bg-transparent ${
+                          val ? "border-gold text-gold shadow-[0_0_12px_rgba(197,160,89,0.3)]" : "border-ink/20 text-ink focus:border-gold/60"
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={sendOtp}
+                      disabled={otpResendCooldown > 0 || loading}
+                      className={`flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold transition-colors ${
+                        otpResendCooldown > 0 ? "text-ink/30 cursor-not-allowed" : "text-ink/60 hover:text-gold"
+                      }`}
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      {otpResendCooldown > 0 ? `Resend in ${otpResendCooldown}s` : "Resend OTP"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Password + Role */}
+              {step === 4 && (
                 <div className="space-y-8">
                   <div className="grid grid-cols-2 gap-8">
                     <div>
@@ -283,10 +395,7 @@ export const RegisterPage = () => {
                         <input
                           type={showPassword ? "text" : "password"}
                           value={form.password}
-                          onChange={(e) => {
-                            setForm({ ...form, password: e.target.value });
-                            setError("");
-                          }}
+                          onChange={(e) => { setForm({ ...form, password: e.target.value }); setError(""); }}
                           className="w-full border-b border-ink/20 py-4 pr-10 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                         />
                         <button
@@ -304,10 +413,7 @@ export const RegisterPage = () => {
                         <input
                           type={showConfirmPassword ? "text" : "password"}
                           value={form.confirmPassword}
-                          onChange={(e) => {
-                            setForm({ ...form, confirmPassword: e.target.value });
-                            setError("");
-                          }}
+                          onChange={(e) => { setForm({ ...form, confirmPassword: e.target.value }); setError(""); }}
                           className="w-full border-b border-ink/20 py-4 pr-10 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                         />
                         <button
@@ -340,27 +446,6 @@ export const RegisterPage = () => {
                   </div>
                 </div>
               )}
-
-              {step === 4 && (
-                <div className="text-center space-y-6">
-                  <div className="mb-8">
-                    <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">Verification Code</label>
-                    <p className="text-[10px] uppercase tracking-widest text-ink/60 mb-6">Sent to {form.email}</p>
-                    <input
-                      autoFocus
-                      type="text"
-                      maxLength={6}
-                      value={form.otp}
-                      onChange={(e) => {
-                        setForm({ ...form, otp: e.target.value.replace(/\D/g, "") });
-                        setError("");
-                      }}
-                      placeholder="000000"
-                      className="w-full border-b border-ink/20 py-5 text-4xl tracking-[0.5em] text-center bg-transparent outline-none focus:border-gold transition-colors font-serif text-ink"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="flex justify-between items-center">
@@ -377,7 +462,7 @@ export const RegisterPage = () => {
                 className="ml-auto px-10 py-4 bg-ink text-paper text-[10px] uppercase tracking-[0.4em] hover:bg-gold transition-all font-bold shadow-[0_4px_16px_rgba(42,35,24,0.2)] hover:shadow-[0_6px_20px_rgba(197,160,89,0.4)] flex items-center justify-center gap-2 rounded"
               >
                 {loading && <div className="w-3 h-3 border border-paper border-t-transparent rounded-full animate-spin" />}
-                {step < 3 ? "Next" : step === 3 ? "Send OTP" : "Complete Registration"}
+                {step < 4 ? "Next" : "Complete"}
               </button>
             </div>
           </form>

@@ -21,7 +21,7 @@ const getInitials = (name) => {
   return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 };
 
-export const LiveChat = ({ auctionId }) => {
+export const LiveChat = React.memo(({ auctionId }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
@@ -165,4 +165,4 @@ export const LiveChat = ({ auctionId }) => {
       </div>
     </div>
   );
-};
+});

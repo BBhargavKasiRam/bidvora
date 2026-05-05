@@ -35,7 +35,7 @@ import { PrivateChat } from "../components/PrivateChat";
 import { getServerNow } from "../hooks/useServerTime";
 
 // ─── Anti-snipe Banner ────────────────────────────────────────────────────────
-const AntiSnipeBanner = ({ wasExtended, extensionMinutes }) => {
+const AntiSnipeBanner = React.memo(({ wasExtended, extensionMinutes }) => {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -74,10 +74,10 @@ const AntiSnipeBanner = ({ wasExtended, extensionMinutes }) => {
       )}
     </AnimatePresence>
   );
-};
+});
 
 // ─── Countdown Timer ──────────────────────────────────────────────────────────
-const CountdownTimer = ({ endTime, onExtended }) => {
+const CountdownTimer = React.memo(({ endTime, onExtended }) => {
   const [timeLeft, setTimeLeft] = useState("");
   const [isUrgent, setIsUrgent] = useState(false);
   const [isCritical, setIsCritical] = useState(false);
@@ -130,10 +130,10 @@ const CountdownTimer = ({ endTime, onExtended }) => {
       </span>
     </div>
   );
-};
+});
 
 // ─── Bid History ──────────────────────────────────────────────────────────────
-const BidHistory = ({ bids }) => {
+const BidHistory = React.memo(({ bids }) => {
   if (!bids || bids.length === 0) {
     return (
       <div className="text-center py-10 border border-dashed border-ink/10">
@@ -202,15 +202,16 @@ const BidHistory = ({ bids }) => {
       ))}
     </div>
   );
-};
+});
 
 // ─── WebRTC Video Component (FIXED FOR DEVICES) ───────────────────────────────
-const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
+const VideoStream = React.memo(({ auctionId, isBroadcaster, broadcasterName }) => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnections = useRef({});
   const peerConnection = useRef(null);
   const localStream = useRef(null);
+  const watchTimeoutRef = useRef(null);
 
   const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [isWatching, setIsWatching] = useState(false);
@@ -226,6 +227,7 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun1.l.google.com:19302" },
       { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:global.stun.twilio.com:3478" } // Additional fallback
     ],
   };
 
@@ -261,17 +263,23 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
     socket.on("broadcaster-present", ({ broadcasterId: bId }) => {
       setBroadcasterPresent(true);
       setBroadcasterId(bId);
+      // Auto watch stream if viewer and not already watching
+      if (!isBroadcaster && !isWatching) {
+        watchStream(bId);
+      }
     });
 
     socket.on("broadcast-ended", () => {
       setBroadcasterPresent(false);
       setBroadcasterId(null);
       setIsWatching(false);
+      setConnectionState("idle");
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
       if (peerConnection.current) {
         peerConnection.current.close();
         peerConnection.current = null;
       }
+      if (watchTimeoutRef.current) clearTimeout(watchTimeoutRef.current);
     });
 
     if (isBroadcaster) {
@@ -339,6 +347,7 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
             });
           }
           setConnectionState("connected");
+          if (watchTimeoutRef.current) clearTimeout(watchTimeoutRef.current);
         };
 
         pc.onicecandidate = (e) => {
@@ -350,7 +359,12 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
             });
         };
 
-        pc.onconnectionstatechange = () => setConnectionState(pc.connectionState);
+        pc.onconnectionstatechange = () => {
+          setConnectionState(pc.connectionState);
+          if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+            setConnectionState("failed");
+          }
+        };
 
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
         const answer = await pc.createAnswer();
@@ -359,8 +373,13 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
       });
 
       socket.on("ice-candidate", async ({ candidate, senderId }) => {
-        if (peerConnection.current && candidate)
-          await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+        if (peerConnection.current && candidate) {
+          try {
+            await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch(e) {
+            console.error("Error adding ice candidate", e);
+          }
+        }
       });
     }
 
@@ -372,17 +391,15 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
       socket.off("answer");
       socket.off("ice-candidate");
       socket.off("viewer-disconnected");
+      if (watchTimeoutRef.current) clearTimeout(watchTimeoutRef.current);
     };
   }, [isBroadcaster, auctionId]);
 
   useEffect(() => {
-    // Check stream status periodically just in case
     const interval = setInterval(() => {
       getSocket().emit("check-stream-status", { auctionId: String(auctionId) });
-    }, 5000);
-    // And check once immediately
+    }, 10000);
     getSocket().emit("check-stream-status", { auctionId: String(auctionId) });
-
     return () => clearInterval(interval);
   }, [auctionId]);
 
@@ -432,24 +449,39 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
     getSocket().emit("broadcast-ended-notify", { auctionId: String(auctionId) });
   };
 
-  const watchStream = () => {
-    if (!broadcasterId) return;
+  const watchStream = (targetBroadcasterId = broadcasterId) => {
+    if (!targetBroadcasterId) return;
     setIsWatching(true);
     setConnectionState("connecting");
+    if (watchTimeoutRef.current) clearTimeout(watchTimeoutRef.current);
+    
+    // Auto-retry logic
+    watchTimeoutRef.current = setTimeout(() => {
+      if (connectionState !== "connected") {
+        setConnectionState("failed");
+      }
+    }, 12000);
+
     getSocket().emit("viewer-ready", { auctionId: String(auctionId), viewerId: getSocket().id });
   };
 
   const toggleMic = () => {
     if (localStream.current) {
-      localStream.current.getAudioTracks().forEach((t) => { t.enabled = !t.enabled; });
-      setMicOn((prev) => !prev);
+      const audioTrack = localStream.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setMicOn(audioTrack.enabled);
+      }
     }
   };
 
   const toggleCam = () => {
     if (localStream.current) {
-      localStream.current.getVideoTracks().forEach((t) => { t.enabled = !t.enabled; });
-      setCamOn((prev) => !prev);
+      const videoTrack = localStream.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setCamOn(videoTrack.enabled);
+      }
     }
   };
 
@@ -475,8 +507,8 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
               <video
                 ref={localVideoCallbackRef}
                 autoPlay
-                muted // Broadcaster must be muted to allow auto-play
-                playsInline // Critical for iOS
+                muted
+                playsInline
                 onClick={() => toggleFullscreen(localVideoRef)}
                 className="w-full h-full object-cover cursor-pointer"
               />
@@ -486,13 +518,13 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
               <div className="absolute bottom-3 left-3 flex gap-2">
                 <button
                   onClick={(e) => { e.stopPropagation(); toggleMic(); }}
-                  className={`p-2 rounded-full text-paper text-xs ${micOn ? "bg-ink/60" : "bg-red-500"}`}
+                  className={`p-2 rounded-full text-paper text-xs transition-colors ${micOn ? "bg-ink/60 hover:bg-ink/80" : "bg-red-500 hover:bg-red-600"}`}
                 >
                   {micOn ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); toggleCam(); }}
-                  className={`p-2 rounded-full text-paper text-xs ${camOn ? "bg-ink/60" : "bg-red-500"}`}
+                  className={`p-2 rounded-full text-paper text-xs transition-colors ${camOn ? "bg-ink/60 hover:bg-ink/80" : "bg-red-500 hover:bg-red-600"}`}
                 >
                   {camOn ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
                 </button>
@@ -509,7 +541,7 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
         ) : (
           <div className="space-y-3">
             <p className="text-xs text-ink/50 font-light leading-relaxed">
-              Go live so bidders can see the item in real time. Your camera will
+              Go live so bidders can see the item in real time. Your camera and microphone will
               be shared with all viewers in this auction.
             </p>
             <button
@@ -546,17 +578,25 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
               <video
                 ref={remoteVideoRef}
                 autoPlay
-                muted={false} // Viewers need audio
-                playsInline // Critical for iOS
+                playsInline
                 onClick={() => toggleFullscreen(remoteVideoRef)}
                 className="w-full h-full object-cover cursor-pointer"
               />
               <div className="absolute top-2 right-2 p-1.5 bg-ink/60 text-paper opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 <Maximize2 className="w-3.5 h-3.5" />
               </div>
-              {connectionState !== "connected" && (
-                <div className="absolute inset-0 flex items-center justify-center">
+              {connectionState === "connecting" && (
+                <div className="absolute inset-0 flex items-center justify-center bg-ink/50">
                   <div className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              {connectionState === "failed" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-ink/80 text-white gap-3">
+                  <WifiOff className="w-8 h-8 text-red-500" />
+                  <span className="text-[10px] uppercase tracking-widest font-bold">Connection Failed</span>
+                  <button onClick={() => watchStream(broadcasterId)} className="px-4 py-2 bg-gold text-ink text-[10px] uppercase tracking-widest font-bold rounded">
+                    Retry
+                  </button>
                 </div>
               )}
             </div>
@@ -569,9 +609,9 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
             </div>
           )}
 
-          {!isWatching && (
+          {!isWatching && connectionState !== "connecting" && (
             <button
-              onClick={watchStream}
+              onClick={() => watchStream()}
               className="w-full py-3 bg-ink text-paper text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-2 hover:bg-gold transition"
             >
               <Video className="w-4 h-4" />
@@ -587,7 +627,7 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
       )}
     </div>
   );
-};
+});
 
 import { useToast } from "../context/ToastContext";
 
@@ -629,9 +669,9 @@ export const AuctionDetailPage = () => {
   // Seller Rating
   const [sellerRating, setSellerRating] = useState(null);
 
-  const fetchAuction = useCallback(async () => {
+  const fetchAuction = useCallback(async (signal) => {
     try {
-      const data = await api.get(`/auctions/${id}`);
+      const data = await api.get(`/auctions/${id}`, { signal });
       setAuction(data);
       setCurrentEndTime(data.end_time);
       
@@ -653,33 +693,49 @@ export const AuctionDetailPage = () => {
       }
 
       try {
-        const ratingData = await api.get(`/reviews/${data.seller_id}`);
+        const ratingData = await api.get(`/reviews/${data.seller_id}`, { signal });
         setSellerRating(ratingData);
       } catch (err) {
-        console.error("Failed to fetch seller rating", err);
+        if (err.name !== "CanceledError" && err.name !== "AbortError") {
+          console.error("Failed to fetch seller rating", err);
+        }
       }
 
       if (user) {
-        api.get(`/bids/proxy/${id}`)
+        api.get(`/bids/proxy/${id}`, { signal })
           .then(res => {
             if (res.max_bid_amount) setActiveProxyBid(res.max_bid_amount);
           })
-          .catch(e => console.error(e));
+          .catch(e => {
+            if (e.name !== "CanceledError" && e.name !== "AbortError") console.error(e);
+          });
       }
 
-    } catch {
-      navigate("/");
+    } catch (err) {
+      if (err.name !== "CanceledError" && err.name !== "AbortError") {
+        navigate("/");
+      }
     }
   }, [id, navigate, user]);
 
   useEffect(() => {
-    fetchAuction();
+    const abortController = new AbortController();
+    fetchAuction(abortController.signal);
+    return () => abortController.abort();
   }, [fetchAuction]);
 
   useEffect(() => {
     if (isEditing) return;
-    const interval = setInterval(fetchAuction, 10000);
-    return () => clearInterval(interval);
+    let abortController = new AbortController();
+    const interval = setInterval(() => {
+      abortController.abort(); // Cancel previous request if still pending
+      abortController = new AbortController();
+      fetchAuction(abortController.signal);
+    }, 10000);
+    return () => {
+      clearInterval(interval);
+      abortController.abort();
+    };
   }, [id, isEditing, fetchAuction]);
 
   useEffect(() => {
@@ -1216,24 +1272,42 @@ export const AuctionDetailPage = () => {
               )}
             </div>
 
-            <div className="p-6 border border-ink/10 bg-white/50 flex items-center gap-5">
-              <div className="w-12 h-12 rounded-full bg-paper flex items-center justify-center text-gold border border-ink/5 shadow-inner">
-                <UserPlus className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-[9px] uppercase tracking-[0.3em] text-ink/40 font-bold mb-0.5">
-                  Curated By
-                </p>
-                <div className="flex items-center gap-3">
-                  <p className="font-serif text-xl">{auction.seller_name}</p>
-                  {sellerRating && sellerRating.totalReviews > 0 && (
-                    <div className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-gold/10 text-gold border border-gold/20">
-                      <Star className="w-3 h-3 fill-gold" />
-                      {sellerRating.averageRating} ({sellerRating.totalReviews})
-                    </div>
-                  )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-6 border border-ink/10 bg-white/50 flex items-center gap-5">
+                <div className="w-12 h-12 rounded-full bg-paper flex items-center justify-center text-gold border border-ink/5 shadow-inner">
+                  <UserPlus className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-[0.3em] text-ink/40 font-bold mb-0.5">
+                    Curated By
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <p className="font-serif text-xl">{auction.seller_name}</p>
+                    {sellerRating && sellerRating.totalReviews > 0 && (
+                      <div className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 bg-gold/10 text-gold border border-gold/20">
+                        <Star className="w-3 h-3 fill-gold" />
+                        {sellerRating.averageRating} ({sellerRating.totalReviews})
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {auction.mediator_name && (
+                <div className="p-6 border border-ink/10 bg-white/50 flex items-center gap-5">
+                  <div className="w-12 h-12 rounded-full bg-paper flex items-center justify-center text-gold border border-ink/5 shadow-inner">
+                    <Gavel className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase tracking-[0.3em] text-ink/40 font-bold mb-0.5">
+                      Assigned Auctioneer
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <p className="font-serif text-xl">{auction.mediator_name}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

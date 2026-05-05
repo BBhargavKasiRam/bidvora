@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { Send, Lock } from "lucide-react";
 import { api } from "../lib/api";
 
-export const PrivateChat = ({ auctionId }) => {
+export const PrivateChat = React.memo(({ auctionId }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
@@ -112,4 +112,4 @@ export const PrivateChat = ({ auctionId }) => {
       </div>
     </div>
   );
-};
+});
