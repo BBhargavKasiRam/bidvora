@@ -318,9 +318,25 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
 
         pc.ontrack = (e) => {
           if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = e.streams[0];
-            // Critical for mobile auto-play
-            remoteVideoRef.current.play().catch(err => console.error("Video play error:", err));
+            // Use the stream from the event, or create one if missing
+            const stream = (e.streams && e.streams[0]) ? e.streams[0] : new MediaStream([e.track]);
+            
+            if (remoteVideoRef.current.srcObject !== stream) {
+              remoteVideoRef.current.srcObject = stream;
+            }
+            
+            // Ensure unmuted and full volume for the viewer
+            remoteVideoRef.current.muted = false;
+            remoteVideoRef.current.volume = 1.0;
+            
+            remoteVideoRef.current.play().catch(err => {
+              console.error("Video play error (mic/video):", err);
+              // Fallback: Try playing again if it was a permission issue
+              if (err.name === "NotAllowedError") {
+                remoteVideoRef.current.muted = true; // Play muted as last resort
+                remoteVideoRef.current.play();
+              }
+            });
           }
           setConnectionState("connected");
         };
@@ -376,8 +392,17 @@ const VideoStream = ({ auctionId, isBroadcaster, broadcasterName }) => {
         throw new Error("Your browser does not support camera access, or you are not using HTTPS/localhost.");
       }
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-        audio: true,
+        video: { 
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 44100
+        },
       });
       localStream.current = stream;
       if (localVideoRef.current) {
