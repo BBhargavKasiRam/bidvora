@@ -143,17 +143,18 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-80px)] bg-white flex items-center justify-center px-4 overflow-hidden">
-      <div className="max-w-xl w-full p-14 rounded-2xl bg-white border border-ink/5 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gold"></div>
+    <div className="h-[calc(100vh-80px)] flex items-center justify-center relative px-4 overflow-hidden">
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+      <div className="max-w-xl w-full p-14 glass-card relative overflow-hidden z-10 shadow-[0_20px_60px_rgba(42,35,24,0.15)]">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold/40 via-gold to-gold/40"></div>
 
         <div className="mb-10 text-center">
-          <h2 className="text-4xl font-serif">Join Bidvora</h2>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 font-bold mt-2">Create your professional profile</p>
+          <h2 className="text-4xl font-serif text-ink letterpress">Join Bidvora</h2>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-ink/50 font-bold mt-2">Create your professional profile</p>
         </div>
 
         {error && (
-          <div className="mb-8 p-4 bg-red-50 text-red-600 text-[11px] uppercase tracking-widest font-bold flex items-center gap-2 border-l-2 border-red-600">
+          <div className="mb-8 p-4 bg-red-50 text-red-700 text-[11px] uppercase tracking-widest font-bold flex items-center gap-2 border-l-4 border-red-600 rounded-r">
             <AlertCircle className="w-4 h-4" />
             {error}
           </div>
@@ -163,22 +164,22 @@ export const RegisterPage = () => {
           <button
             onClick={handleGoogleSignup}
             disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 py-4 border border-ink/10 hover:bg-paper transition-all group"
+            className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-ink/10 text-ink shadow-[0_2px_8px_rgba(42,35,24,0.08)] hover:shadow-[0_4px_16px_rgba(42,35,24,0.12)] hover:border-ink/20 transition-all hover-lift group rounded-lg"
           >
             {googleLoading ? (
               <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
             ) : (
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
             )}
-            <span className="text-[10px] uppercase tracking-widest font-bold text-ink/60 group-hover:text-ink">
+            <span className="text-[10px] uppercase tracking-widest font-bold text-ink/70 group-hover:text-ink transition-colors">
               Register with Google
             </span>
           </button>
 
           <div className="relative flex items-center py-4">
-            <div className="flex-grow border-t border-ink/5"></div>
-            <span className="flex-shrink mx-4 text-[9px] uppercase tracking-widest font-bold text-ink/20">or sign up manually</span>
-            <div className="flex-grow border-t border-ink/5"></div>
+            <div className="flex-grow border-t border-ink/10"></div>
+            <span className="flex-shrink mx-4 text-[9px] uppercase tracking-widest font-bold text-ink/40">or sign up manually</span>
+            <div className="flex-grow border-t border-ink/10"></div>
           </div>
 
           <form onSubmit={(e) => e.preventDefault()} className="space-y-10">
@@ -193,7 +194,7 @@ export const RegisterPage = () => {
                       setForm({ ...form, name: e.target.value.trimStart() });
                       setError("");
                     }}
-                    className="w-full border-b border-ink/10 py-5 text-xl outline-none focus:border-gold transition-colors"
+                    className="w-full border-b border-ink/20 py-5 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                   />
                 </div>
               )}
@@ -208,7 +209,7 @@ export const RegisterPage = () => {
                       setForm({ ...form, email: e.target.value.trimStart() });
                       setError("");
                     }}
-                    className="w-full border-b border-ink/10 py-5 text-xl outline-none focus:border-gold transition-colors"
+                    className="w-full border-b border-ink/20 py-5 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                   />
                 </div>
               )}
@@ -226,7 +227,7 @@ export const RegisterPage = () => {
                             setForm({ ...form, password: e.target.value });
                             setError("");
                           }}
-                          className="w-full border-b border-ink/10 py-4 pr-10 text-xl outline-none focus:border-gold transition-colors"
+                          className="w-full border-b border-ink/20 py-4 pr-10 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                         />
                         <button
                           type="button"
@@ -247,7 +248,7 @@ export const RegisterPage = () => {
                             setForm({ ...form, confirmPassword: e.target.value });
                             setError("");
                           }}
-                          className="w-full border-b border-ink/10 py-4 pr-10 text-xl outline-none focus:border-gold transition-colors"
+                          className="w-full border-b border-ink/20 py-4 pr-10 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                         />
                         <button
                           type="button"
@@ -261,15 +262,15 @@ export const RegisterPage = () => {
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase tracking-widest text-ink/40 block mb-4 font-bold">Select Account Purpose</label>
+                    <label className="text-[10px] uppercase tracking-widest text-ink/50 block mb-4 font-bold">Select Account Purpose</label>
                     <div className="flex gap-4">
                       {['buyer', 'consignor', 'auctioneer'].map((r) => (
                         <button
                           key={r}
                           type="button"
                           onClick={() => setForm({ ...form, role: r })}
-                          className={`flex-1 py-3 text-[9px] uppercase tracking-widest font-bold border transition-all ${
-                            form.role === r ? "bg-ink text-white border-ink shadow-lg" : "text-ink/40 border-ink/10 hover:border-ink/20"
+                          className={`flex-1 py-3 text-[9px] uppercase tracking-widest font-bold border rounded transition-all ${
+                            form.role === r ? "bg-gold text-white border-gold shadow-[0_4px_12px_rgba(197,160,89,0.3)]" : "text-ink/50 border-ink/15 hover:border-gold/40 hover:text-ink bg-white"
                           }`}
                         >
                           {r}
@@ -283,7 +284,7 @@ export const RegisterPage = () => {
 
             <div className="flex justify-between items-center">
               {step > 1 && (
-                <button type="button" onClick={handleBack} className="text-xs uppercase tracking-widest text-ink/60 font-bold hover:text-ink">
+                <button type="button" onClick={handleBack} className="text-xs uppercase tracking-widest text-ink/60 font-bold hover:text-gold transition-colors">
                   Back
                 </button>
               )}
@@ -292,18 +293,18 @@ export const RegisterPage = () => {
                 type="button"
                 onClick={handleNext}
                 disabled={loading}
-                className="ml-auto px-10 py-4 bg-ink text-white text-[10px] uppercase tracking-[0.4em] font-bold shadow-xl flex items-center justify-center gap-2"
+                className="ml-auto px-10 py-4 bg-ink text-paper text-[10px] uppercase tracking-[0.4em] hover:bg-gold transition-all font-bold shadow-[0_4px_16px_rgba(42,35,24,0.2)] hover:shadow-[0_6px_20px_rgba(197,160,89,0.4)] flex items-center justify-center gap-2 rounded"
               >
-                {loading && <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />}
+                {loading && <div className="w-3 h-3 border border-paper border-t-transparent rounded-full animate-spin" />}
                 {step < 3 ? "Next" : "Complete"}
               </button>
             </div>
           </form>
         </div>
 
-        <p className="mt-12 text-center text-[10px] uppercase tracking-widest text-ink/40 font-bold">
+        <p className="mt-12 text-center text-[10px] uppercase tracking-widest text-ink/50 font-bold">
           Already have an account?{" "}
-          <Link to="/login" className="text-ink hover:text-gold transition-colors">Sign in</Link>
+          <Link to="/login" className="text-gold font-bold hover:underline transition-colors">Sign in</Link>
         </p>
       </div>
     </div>

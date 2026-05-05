@@ -302,7 +302,7 @@ export const ProfilePage = () => {
               <div
                 onClick={() => togglePreference("emailNotifications")}
                 className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${
-                  preferences.emailNotifications ? "bg-gold" : "bg-white/10"
+                  preferences.emailNotifications ? "bg-gold" : "bg-paper/20"
                 }`}
               >
                 <motion.div
@@ -317,7 +317,7 @@ export const ProfilePage = () => {
               <div
                 onClick={() => togglePreference("twoFactorAuth")}
                 className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${
-                  preferences.twoFactorAuth ? "bg-gold" : "bg-white/10"
+                  preferences.twoFactorAuth ? "bg-gold" : "bg-paper/20"
                 }`}
               >
                 <motion.div
@@ -332,7 +332,7 @@ export const ProfilePage = () => {
               <div
                 onClick={() => togglePreference("publicProfile")}
                 className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${
-                  preferences.publicProfile ? "bg-gold" : "bg-white/10"
+                  preferences.publicProfile ? "bg-gold" : "bg-paper/20"
                 }`}
               >
                 <motion.div

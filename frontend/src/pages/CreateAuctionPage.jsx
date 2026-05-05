@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, Search, User, Briefcase, Star, Info, Check, ChevronDown } from "lucide-react";
+import { AlertCircle, Search, User, Briefcase, Star, Check, ChevronDown, Camera, Upload, ArrowRight, Clock, Shield } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
 import { motion, AnimatePresence } from "motion/react";
 
 export const CreateAuctionPage = () => {
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startingPrice, setStartingPrice] = useState("");
@@ -18,6 +20,13 @@ export const CreateAuctionPage = () => {
   const [showDropdown, setShowDropdown] = useState(false);
 
   const dropdownRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState(null);
 
   useEffect(() => {
     const fetchAuctioneers = async () => {
@@ -48,14 +57,6 @@ export const CreateAuctionPage = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [image, setImage] = useState(null);
-  const [preview, setPreview] = useState(null);
-
-  const fileInputRef = useRef(null);
-  const navigate = useNavigate();
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -111,7 +112,6 @@ export const CreateAuctionPage = () => {
       formData.append("image", image);
 
       await api.post("/auctions", formData);
-
       navigate("/");
     } catch (err) {
       console.error(err);
@@ -122,263 +122,319 @@ export const CreateAuctionPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F7F2] py-20 px-4 font-sans text-ink">
-      <div className="max-w-4xl mx-auto bg-white border border-ink/10 shadow-2xl p-12 lg:p-20 relative">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden selection:bg-blue-200">
+      {/* Dynamic Light Blue Background */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-blue-200/40 rounded-full blur-[120px] mix-blend-multiply animate-pulse-glow"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-sky-200/50 rounded-full blur-[150px] mix-blend-multiply"></div>
+        <div className="absolute top-[40%] left-[50%] w-[40vw] h-[40vw] bg-indigo-100/60 rounded-full blur-[100px] mix-blend-multiply -translate-x-1/2"></div>
+      </div>
 
-        <div className="absolute top-0 left-0 w-full h-1.5 bg-[#C5A059]"></div>
-
-        <header className="mb-16 border-b border-ink/5 pb-10">
-          <h2 className="text-6xl font-serif mb-4 tracking-tight">Create Consignment</h2>
-          <p className="text-[11px] uppercase tracking-[0.4em] text-ink/60 font-bold">
-            Submit a new entry for the BIDVORA collection
-          </p>
+      <div className="relative z-10 max-w-[1600px] mx-auto px-6 py-12 lg:h-screen lg:flex lg:flex-col">
+        <header className="mb-10 flex items-center justify-between shrink-0">
+          <div>
+            <h1 className="text-4xl lg:text-5xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500">
+              Launch Asset
+            </h1>
+            <p className="text-slate-500 mt-2 font-medium tracking-wide uppercase text-xs">Configure your next high-value listing</p>
+          </div>
+          <button 
+            onClick={() => navigate('/')}
+            className="w-12 h-12 rounded-full border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm"
+          >
+            <AlertCircle className="w-5 h-5 text-slate-400" />
+          </button>
         </header>
 
         {error && (
-          <div className="mb-12 p-5 bg-red-50 text-red-700 text-[11px] uppercase tracking-[0.2em] font-bold flex items-center gap-3 border-l-4 border-red-600">
-            <AlertCircle size={18} /> {error}
-          </div>
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 flex items-center gap-3 shrink-0 shadow-sm">
+            <AlertCircle className="w-5 h-5" />
+            <p className="text-sm font-medium">{error}</p>
+          </motion.div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-16">
-
-          <input
-            type="text"
-            value={title}
-            placeholder="Auction Title"
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full border-b text-3xl p-4 outline-none focus:border-gold transition-colors"
-          />
-
-          <textarea
-            value={description}
-            placeholder="Description"
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full border border-ink/10 p-6 h-40 outline-none focus:border-gold transition-colors font-light leading-relaxed"
-          />
-
-          <div
-            onClick={() => fileInputRef.current.click()}
-            className="border-2 border-dashed border-ink/10 p-10 cursor-pointer hover:border-gold/30 hover:bg-gold/5 transition-all text-center group"
-          >
-            {preview ? (
-              <div className="relative aspect-video max-h-80 mx-auto">
-                <img src={preview} className="w-full h-full object-contain" alt="Preview" />
-                <div className="absolute inset-0 bg-ink/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold uppercase tracking-widest">
-                  Change Image
-                </div>
-              </div>
-            ) : (
-              <div className="py-10">
-                <p className="text-ink/40 uppercase tracking-widest text-xs font-bold">Click to upload high-resolution product image</p>
-              </div>
-            )}
-            <input
-              type="file"
-              ref={fileInputRef}
-              hidden
-              onChange={handleImageChange}
-            />
-          </div>
-
-          <div className="space-y-6 pt-10 border-t border-ink/5 relative" ref={dropdownRef}>
-            <h3 className="text-3xl font-serif mb-2">Assign Auctioneer</h3>
-            <p className="text-xs text-ink/40 uppercase tracking-widest font-bold mb-4">Search for a professional partner to host your auction</p>
-            
-            <div className="relative group">
-              <div className={`flex items-center gap-4 p-4 border transition-all rounded-xl ${showDropdown ? 'border-gold ring-4 ring-gold/5 shadow-lg' : 'border-ink/10 bg-paper/30'}`}>
-                <Search className={`w-5 h-5 ${showDropdown ? 'text-gold' : 'text-ink/20'}`} />
-                <input 
-                  type="text"
-                  placeholder="Type name to find auctioneers..."
-                  value={searchTerm}
-                  onFocus={() => setShowDropdown(true)}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setShowDropdown(true);
-                  }}
-                  className="flex-1 bg-transparent outline-none text-lg font-serif placeholder:text-ink/20"
-                />
-                {selectedMediator && !showDropdown && (
-                  <div className="flex items-center gap-2 bg-gold/10 px-3 py-1.5 rounded-full border border-gold/20">
-                    <Check className="w-3 h-3 text-gold" />
-                    <span className="text-[10px] font-bold text-gold uppercase tracking-widest">{selectedMediator.name}</span>
+        <div className="lg:flex-1 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:min-h-0">
+          
+          {/* Left Column: Interactive Form */}
+          <div className="lg:col-span-7 xl:col-span-6 flex flex-col h-full overflow-y-auto pr-4 custom-scrollbar pb-32 lg:pb-0">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              
+              {/* Media Upload (Hero area of form) */}
+              <div 
+                onClick={() => fileInputRef.current.click()}
+                className="group relative w-full h-72 rounded-3xl overflow-hidden bg-white shadow-md border border-slate-200 cursor-pointer hover:border-blue-400 hover:shadow-lg transition-all duration-500"
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent z-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                {preview ? (
+                  <img src={preview} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="Preview" />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 group-hover:text-blue-500 transition-colors bg-blue-50/30">
+                    <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm border border-slate-100 group-hover:border-blue-200">
+                      <Camera className="w-6 h-6" />
+                    </div>
+                    <p className="text-sm font-medium tracking-widest uppercase">Upload Hero Image</p>
                   </div>
                 )}
-                <ChevronDown className={`w-4 h-4 text-ink/20 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+                <div className="absolute bottom-6 left-6 right-6 z-20 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity translate-y-4 group-hover:translate-y-0 duration-300">
+                  <span className="text-xs font-bold uppercase tracking-widest text-white shadow-sm">High Quality Recommended</span>
+                  <div className="w-8 h-8 rounded-full bg-blue-500 text-white shadow-md flex items-center justify-center"><Upload className="w-4 h-4" /></div>
+                </div>
+                <input type="file" ref={fileInputRef} hidden onChange={handleImageChange} accept="image/*" />
               </div>
 
-              <AnimatePresence>
-                {showDropdown && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 5, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                    className="absolute z-50 left-0 right-0 top-full bg-white border border-gold/20 shadow-2xl rounded-2xl overflow-hidden"
-                  >
-                    <div className="p-3 border-b border-ink/5 bg-paper/50 flex items-center justify-between">
-                      <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-ink/30">Top Professionals</span>
-                      {isSearching && <div className="w-3 h-3 border border-gold border-t-transparent rounded-full animate-spin" />}
-                    </div>
-                    
-                    <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
-                      {mediators.length === 0 && !isSearching && (
-                        <div className="py-12 text-center">
-                          <User className="w-10 h-10 text-ink/5 mx-auto mb-2" />
-                          <p className="text-xs text-ink/30 font-bold uppercase tracking-widest">No auctioneers found</p>
-                        </div>
-                      )}
-                      
-                      {mediators.map((m, idx) => (
-                        <div 
-                          key={m.id}
-                          onClick={() => {
-                            setSelectedMediator(m);
-                            setSearchTerm("");
-                            setShowDropdown(false);
-                            setError("");
-                          }}
-                          className={`flex items-center gap-4 p-4 cursor-pointer transition-all hover:bg-gold/5 group ${idx !== mediators.length - 1 ? 'border-b border-ink/5' : ''}`}
-                        >
-                          <div className="relative">
-                            <div className="w-12 h-12 rounded-full border-2 border-gold/20 overflow-hidden group-hover:border-gold transition-colors">
-                              {m.profile_image ? (
-                                <img src={m.profile_image} className="w-full h-full object-cover" alt={m.name} />
-                              ) : (
-                                <div className="w-full h-full bg-paper flex items-center justify-center text-gold font-serif text-xl">
-                                  {m.name.charAt(0)}
-                                </div>
-                              )}
-                            </div>
-                            {idx < 3 && !searchTerm && (
-                              <div className="absolute -top-1 -right-1 bg-gold text-white text-[8px] font-bold px-1 rounded shadow-sm">TOP</div>
-                            )}
-                          </div>
-                          
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-serif text-lg leading-none">{m.name}</p>
-                              {m.rating >= 4.5 && <Star className="w-3 h-3 text-gold fill-current" />}
-                            </div>
-                            <div className="flex items-center gap-3 mt-1.5">
-                              <span className="text-[9px] font-bold text-ink/40 uppercase tracking-widest flex items-center gap-1">
-                                <Star className="w-2.5 h-2.5 text-gold" /> {Number(m.rating).toFixed(1)}
-                              </span>
-                              <span className="w-1 h-1 rounded-full bg-ink/10" />
-                              <span className="text-[9px] font-bold text-ink/40 uppercase tracking-widest flex items-center gap-1">
-                                <Briefcase className="w-2.5 h-2.5" /> {m.items_sold} Sold
-                              </span>
-                              <span className="w-1 h-1 rounded-full bg-ink/10" />
-                              <span className="text-[9px] font-bold text-gold uppercase tracking-widest">
-                                {m.total_assignments} Clients
-                              </span>
-                            </div>
-                          </div>
+              {/* Title & Desc */}
+              <div className="space-y-6 bg-white/80 backdrop-blur-md shadow-sm border border-slate-200 p-8 rounded-3xl">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder=" "
+                    className="block w-full px-0 py-4 text-3xl font-serif text-slate-900 bg-transparent border-0 border-b-2 border-slate-200 appearance-none focus:outline-none focus:ring-0 focus:border-blue-500 peer transition-colors"
+                  />
+                  <label className="absolute text-slate-400 text-lg duration-300 transform -translate-y-8 scale-75 top-4 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-8 peer-focus:text-blue-600 font-serif">
+                    Artifact Title
+                  </label>
+                </div>
 
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="bg-gold text-white p-1 rounded-full">
-                              <Check className="w-3 h-3" />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                <div className="relative pt-4">
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder=" "
+                    className="block w-full px-0 py-4 text-lg font-light text-slate-700 bg-transparent border-0 border-b-2 border-slate-200 appearance-none focus:outline-none focus:ring-0 focus:border-blue-500 peer transition-colors resize-none h-32"
+                  />
+                  <label className="absolute text-slate-400 text-lg duration-300 transform -translate-y-8 scale-75 top-8 z-10 origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-8 peer-focus:text-blue-600 font-sans font-light">
+                    Detailed Story &amp; Provenance
+                  </label>
+                </div>
+              </div>
+
+              {/* Auction Configuration */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="bg-white/80 backdrop-blur-md shadow-sm border border-slate-200 p-6 rounded-3xl relative overflow-hidden group hover:border-blue-300 transition-colors hover:shadow-md">
+                  <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 group-hover:text-blue-500 transition-all"><Shield className="w-16 h-16 text-slate-900" /></div>
+                  <label className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mb-4 block">Reserve Price</label>
+                  <div className="flex items-end gap-2 relative z-10">
+                    <span className="text-3xl font-light text-blue-500">$</span>
+                    <input
+                      type="number"
+                      value={startingPrice}
+                      onChange={(e) => setStartingPrice(e.target.value)}
+                      placeholder="0"
+                      className="w-full bg-transparent outline-none font-mono text-4xl text-slate-900 placeholder:text-slate-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-white/80 backdrop-blur-md shadow-sm border border-slate-200 p-6 rounded-3xl relative overflow-hidden group hover:border-blue-300 transition-colors hover:shadow-md">
+                  <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 group-hover:text-blue-500 transition-all"><Clock className="w-16 h-16 text-slate-900" /></div>
+                  <label className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mb-4 block">Duration</label>
+                  <div className="flex items-end gap-2 relative z-10">
+                    <input
+                      type="number"
+                      value={durationHours}
+                      onChange={(e) => setDurationHours(e.target.value)}
+                      placeholder="24"
+                      className="w-full bg-transparent outline-none font-mono text-4xl text-slate-900 placeholder:text-slate-200"
+                    />
+                    <span className="text-lg font-light text-slate-400 pb-1">HRS</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mediator Selection */}
+              <div className="bg-white/80 backdrop-blur-md shadow-sm border border-slate-200 p-8 rounded-3xl" ref={dropdownRef}>
+                <div className="flex justify-between items-center mb-6">
+                  <label className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold block">Assign Auctioneer</label>
+                  {selectedMediator && <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full border border-blue-100 uppercase tracking-widest">Selected</span>}
+                </div>
+                
+                {!selectedMediator ? (
+                  <div className="relative">
+                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-2xl p-4 focus-within:border-blue-400 focus-within:bg-white focus-within:shadow-sm transition-all">
+                      <Search className="w-5 h-5 text-slate-400" />
+                      <input 
+                        type="text"
+                        placeholder="Search professionals..."
+                        value={searchTerm}
+                        onFocus={() => setShowDropdown(true)}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setShowDropdown(true);
+                        }}
+                        className="flex-1 bg-transparent outline-none text-slate-900 placeholder:text-slate-400 text-lg"
+                      />
                     </div>
-                  </motion.div>
+
+                    <AnimatePresence>
+                      {showDropdown && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 5 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="absolute z-50 left-0 right-0 top-full bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden mt-2"
+                        >
+                          <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
+                            {mediators.length === 0 && !isSearching && (
+                              <div className="py-8 text-center text-slate-400 text-sm">No professionals found</div>
+                            )}
+                            {isSearching && (
+                              <div className="py-8 text-center text-blue-500 text-sm animate-pulse">Searching registry...</div>
+                            )}
+                            
+                            {mediators.map((m) => (
+                              <div 
+                                key={m.id}
+                                onClick={() => {
+                                  setSelectedMediator(m);
+                                  setSearchTerm("");
+                                  setShowDropdown(false);
+                                  setError("");
+                                }}
+                                className="flex items-center gap-4 p-4 cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0"
+                              >
+                                <div className="w-10 h-10 rounded-full border border-slate-200 overflow-hidden bg-slate-100 flex shrink-0">
+                                  {m.profile_image ? (
+                                    <img src={m.profile_image} className="w-full h-full object-cover" alt={m.name} />
+                                  ) : (
+                                    <span className="m-auto text-slate-500 font-serif">{m.name.charAt(0)}</span>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-slate-900 font-medium">{m.name}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-[10px] text-slate-500 uppercase flex items-center gap-1"><Star className="w-3 h-3 text-amber-400 fill-amber-400" /> {Number(m.rating).toFixed(1)}</span>
+                                    <span className="w-1 h-1 rounded-full bg-slate-300" />
+                                    <span className="text-[10px] text-slate-500 uppercase">{m.items_sold} Sold</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4 bg-gradient-to-r from-blue-50 to-white border border-blue-200 p-4 rounded-2xl relative group shadow-sm">
+                    <div className="w-14 h-14 rounded-full border-2 border-blue-300 bg-white overflow-hidden shrink-0 shadow-sm">
+                      {selectedMediator.profile_image ? (
+                        <img src={selectedMediator.profile_image} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-blue-600 font-serif text-xl">{selectedMediator.name.charAt(0)}</div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-lg text-slate-900 font-serif">{selectedMediator.name}</p>
+                      <button type="button" onClick={() => setSelectedMediator(null)} className="text-xs text-blue-500 hover:text-blue-700 transition-colors uppercase tracking-widest mt-1 font-medium">Change Selection</button>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-[10px] uppercase text-slate-400 mb-1 font-bold tracking-wider">Fee</span>
+                      <div className="flex items-center gap-1 bg-white px-2 py-1 rounded border border-slate-200 shadow-inner">
+                        <input type="number" value={commission} onChange={(e) => setCommission(e.target.value)} className="w-8 bg-transparent text-right outline-none text-slate-900 font-mono font-medium" />
+                        <span className="text-slate-500 font-mono">%</span>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </AnimatePresence>
+              </div>
+
+              {/* Submit - Mobile Only (Hidden on LG) */}
+              <button
+                type="submit"
+                disabled={loading || !selectedMediator}
+                className={`w-full lg:hidden py-6 rounded-2xl font-bold uppercase tracking-widest transition-all shadow-md ${
+                  loading || !selectedMediator ? "bg-slate-200 text-slate-400" : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-500/30"
+                }`}
+              >
+                {loading ? "Initializing..." : "Launch Listing"}
+              </button>
+              
+            </form>
+          </div>
+
+          {/* Right Column: Live Interactive Preview */}
+          <div className="hidden lg:col-span-5 xl:col-span-6 lg:flex flex-col items-center justify-center relative pl-8">
+            <div className="absolute top-0 right-0 p-6">
+              <span className="px-4 py-2 bg-white rounded-full text-[10px] uppercase tracking-[0.3em] font-bold text-slate-500 border border-slate-200 shadow-sm flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                Live Preview
+              </span>
             </div>
             
-            {selectedMediator && (
+            <div className="w-full max-w-sm perspective-1000">
               <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gold/5 border border-gold/20 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6"
+                className="w-full bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
+                initial={{ rotateY: -10, rotateX: 5 }}
+                animate={{ rotateY: 0, rotateX: 0 }}
+                transition={{ duration: 1 }}
+                style={{ transformStyle: 'preserve-3d' }}
               >
-                <div className="w-16 h-16 rounded-full border-2 border-gold overflow-hidden shrink-0 shadow-lg">
-                  {selectedMediator.profile_image ? (
-                    <img src={selectedMediator.profile_image} className="w-full h-full object-cover" />
+                <div className="h-64 bg-slate-100 relative overflow-hidden flex items-center justify-center">
+                  {preview ? (
+                    <motion.img initial={{ opacity: 0, scale: 1.1 }} animate={{ opacity: 1, scale: 1 }} src={preview} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full bg-paper flex items-center justify-center text-gold font-serif text-2xl">
-                      {selectedMediator.name.charAt(0)}
+                    <Camera className="w-12 h-12 text-slate-300" />
+                  )}
+                  <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur text-slate-800 text-[10px] uppercase tracking-widest font-bold rounded-full shadow-sm">
+                    Preview
+                  </div>
+                  {durationHours && (
+                    <div className="absolute top-4 right-4 px-3 py-1 bg-blue-600 text-white shadow-md text-[10px] uppercase tracking-widest font-bold rounded-full">
+                      {durationHours}H Left
                     </div>
                   )}
                 </div>
                 
-                <div className="flex-1 text-center md:text-left">
-                  <h4 className="text-xl font-serif mb-1">Partnering with {selectedMediator.name}</h4>
-                  <p className="text-[9px] text-ink/40 font-bold uppercase tracking-[0.2em]">
-                    Setting up a professional consignment agreement
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-gold/30 shadow-sm">
-                  <div className="text-right">
-                    <p className="text-[8px] uppercase tracking-widest font-bold text-ink/40 mb-0.5">Commission</p>
-                    <p className="text-[8px] uppercase tracking-widest font-bold text-gold">Proposed</p>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <h3 className="text-2xl font-serif text-slate-900 truncate">{title || "Artifact Title"}</h3>
+                    <p className="text-slate-500 text-xs uppercase tracking-widest mt-1 truncate font-medium">By {user?.name || "You"}</p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <input 
-                      type="number"
-                      value={commission}
-                      onChange={(e) => setCommission(e.target.value)}
-                      className="w-16 text-2xl font-serif font-bold text-gold outline-none text-center"
-                      min="0"
-                      max="100"
-                    />
-                    <span className="text-2xl font-serif font-bold text-gold">%</span>
+                  
+                  <div className="h-px w-full bg-gradient-to-r from-slate-200 to-transparent"></div>
+                  
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1 font-bold">Reserve</p>
+                      <p className="text-2xl font-mono text-slate-900">${startingPrice || "0"}</p>
+                    </div>
+                    {selectedMediator && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                          {selectedMediator.profile_image ? <img src={selectedMediator.profile_image} className="w-full h-full object-cover" /> : <span className="flex items-center justify-center w-full h-full text-xs font-serif text-slate-500">{selectedMediator.name.charAt(0)}</span>}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 border-t border-ink/5 pt-10">
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-ink/40 block mb-2 font-bold">Reserve Price</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink/30 font-serif text-xl">$</span>
-                <input
-                  type="number"
-                  value={startingPrice}
-                  onChange={(e) => setStartingPrice(e.target.value)}
-                  placeholder="0"
-                  className="w-full border border-ink/10 pl-10 pr-4 py-4 font-mono text-xl outline-none focus:border-gold transition-colors"
-                />
-              </div>
             </div>
 
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-ink/40 block mb-2 font-bold">Auction Duration</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  value={durationHours}
-                  onChange={(e) => setDurationHours(e.target.value)}
-                  placeholder="24"
-                  className="w-full border border-ink/10 px-4 py-4 font-mono text-xl outline-none focus:border-gold transition-colors"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-ink/30 text-xs font-bold uppercase tracking-widest">Hours</span>
-              </div>
+            {/* Desktop Submit Button linked to Form */}
+            <div className="w-full max-w-sm mt-12">
+              <button
+                onClick={handleSubmit}
+                disabled={loading || !selectedMediator}
+                className={`w-full py-5 rounded-2xl font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group overflow-hidden relative shadow-lg ${
+                  loading || !selectedMediator ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none" : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-500/30 hover:-translate-y-1"
+                }`}
+              >
+                {loading ? (
+                  <><div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" /> Publishing...</>
+                ) : (
+                  <>
+                    <span className="relative z-10">Launch Listing</span>
+                    <ArrowRight className="w-4 h-4 relative z-10 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
             </div>
+
           </div>
 
-          <button
-            disabled={loading || !selectedMediator}
-            className={`w-full py-6 text-[11px] uppercase tracking-[0.5em] font-bold transition-all shadow-2xl flex items-center justify-center gap-4 rounded-full ${
-              loading || !selectedMediator ? "bg-ink/50 cursor-not-allowed" : "bg-ink text-paper hover:bg-gold"
-            }`}
-          >
-            {loading ? (
-              <>
-                <div className="w-5 h-5 border-2 border-paper border-t-transparent rounded-full animate-spin" />
-                Processing...
-              </>
-            ) : (
-              "Submit Consignment"
-            )}
-          </button>
-
-        </form>
+        </div>
       </div>
     </div>
   );

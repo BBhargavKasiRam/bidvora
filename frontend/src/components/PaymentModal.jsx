@@ -77,26 +77,26 @@ const CheckoutForm = ({ order, currency, amount, onSuccess, onCancel, isMock }) 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="p-6 bg-paper border border-ink/5 rounded-none shadow-inner">
+      <div className="p-6 bg-surface border border-white/5 rounded-xl shadow-inner shadow-black/50">
         <div className="flex justify-between items-center mb-6">
-          <label className="text-[10px] uppercase tracking-widest font-bold text-ink/40">Card Details</label>
+          <label className="text-[10px] uppercase tracking-widest font-bold text-ink/60">Card Details</label>
           <div className="flex gap-2">
-            <Lock className="w-3 h-3 text-gold" />
-            <span className="text-[9px] uppercase tracking-widest font-bold text-gold">Secure Encrypted</span>
+            <Lock className="w-3 h-3 text-accent glow-text" />
+            <span className="text-[9px] uppercase tracking-widest font-bold text-accent">Secure Encrypted</span>
           </div>
         </div>
         
-        <div className="px-4 py-6 bg-white border border-ink/10">
+        <div className="px-4 py-6 bg-paper rounded-lg border border-white/5">
           <CardElement 
             options={{
               style: {
                 base: {
                   fontSize: '16px',
-                  color: '#0a0a0a',
-                  '::placeholder': { color: '#aab7c4' },
+                  color: '#ffffff',
+                  '::placeholder': { color: '#6b7280' },
                   fontFamily: 'Inter, sans-serif',
                 },
-                invalid: { color: '#9e2146' },
+                invalid: { color: '#ef4444' },
               },
             }}
           />
@@ -104,14 +104,14 @@ const CheckoutForm = ({ order, currency, amount, onSuccess, onCancel, isMock }) 
       </div>
 
       {error && (
-        <div className="flex gap-3 p-4 bg-red-50 text-red-600 text-xs items-center border border-red-100">
+        <div className="flex gap-3 p-4 bg-red-500/10 text-red-400 text-xs items-center border border-red-500/20 rounded-lg">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           <p>{error}</p>
         </div>
       )}
 
       {isMock && (
-        <div className="p-4 bg-gold/10 text-gold text-[10px] uppercase tracking-widest font-bold flex gap-3 items-center border border-gold/20">
+        <div className="p-4 bg-accent/10 text-accent text-[10px] uppercase tracking-widest font-bold flex gap-3 items-center border border-accent/20 rounded-lg">
           <AlertCircle className="w-4 h-4" />
           <p>Sandbox Mode: Payment will be simulated (no real charge).</p>
         </div>
@@ -122,14 +122,14 @@ const CheckoutForm = ({ order, currency, amount, onSuccess, onCancel, isMock }) 
           type="button"
           onClick={onCancel}
           disabled={processing}
-          className="flex-1 py-4 text-[10px] uppercase tracking-widest font-bold border border-ink/10 hover:bg-ink hover:text-paper transition-all disabled:opacity-50"
+          className="flex-1 py-4 text-[10px] uppercase tracking-widest font-bold border border-white/10 hover:bg-white/5 transition-all disabled:opacity-50 rounded-xl text-ink/70"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={!stripe || processing}
-          className="flex-[2] py-4 bg-ink text-paper text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition-all relative overflow-hidden group disabled:opacity-50"
+          className="flex-[2] py-4 glass-button bg-accent/20 border-accent/50 text-accent text-[10px] uppercase tracking-widest font-bold hover:bg-accent hover:text-surface hover:glow-accent transition-all relative overflow-hidden group disabled:opacity-50 rounded-xl"
         >
           {processing ? (
             <div className="flex items-center justify-center gap-2">
@@ -205,26 +205,27 @@ export const PaymentModal = ({ isOpen, onClose, order }) => {
   if (!isOpen || !order) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-center p-4 md:p-12 bg-ink/60 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex justify-center items-center p-4 md:p-12 bg-black/60 backdrop-blur-md overflow-y-auto">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white w-full max-w-lg shadow-2xl relative h-fit mb-12"
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="glass-card w-full max-w-lg relative h-fit border border-white/10 overflow-hidden"
       >
-        <div className="sticky top-0 z-20 p-8 border-b border-ink/5 flex justify-between items-center bg-white/90 backdrop-blur-md">
+        <div className="sticky top-0 z-20 p-8 border-b border-white/5 flex justify-between items-center bg-surface/50 backdrop-blur-xl">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-gold text-ink flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-accent/20 border border-accent/50 text-accent flex items-center justify-center shadow-[0_0_15px_rgba(0,240,255,0.2)]">
               <Lock className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-serif font-bold">Secure Checkout</h2>
-              <p className="text-[10px] uppercase tracking-widest text-ink/40 font-bold">Auction Acquisition</p>
+              <h2 className="text-xl font-serif font-bold text-ink">Secure Checkout</h2>
+              <p className="text-[10px] uppercase tracking-widest text-ink/50 font-bold">Auction Acquisition</p>
             </div>
           </div>
           {!isPaid && (
             <button 
               onClick={onClose} 
-              className="flex items-center gap-2 px-6 py-2 bg-ink text-paper text-[10px] uppercase tracking-widest font-bold hover:bg-gold transition-all"
+              className="flex items-center gap-2 px-4 py-2 glass-button text-ink/70 text-[10px] uppercase tracking-widest font-bold hover:text-red-400 hover:border-red-400/50 transition-all"
             >
               <X className="w-4 h-4" />
               Close
@@ -240,18 +241,18 @@ export const PaymentModal = ({ isOpen, onClose, order }) => {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-center py-12"
               >
-                <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-8 text-white">
+                <div className="w-20 h-20 bg-accent/20 border border-accent/50 rounded-full flex items-center justify-center mx-auto mb-8 text-accent shadow-[0_0_30px_rgba(0,240,255,0.3)]">
                   <CheckCircle2 className="w-12 h-12" />
                 </div>
-                <h3 className="text-3xl font-serif mb-4">Payment Successful</h3>
-                <p className="text-ink/40 text-sm font-light max-w-xs mx-auto">
-                  Your acquisition of <strong>{order.title}</strong> has been secured. Our curators will begin shipment processing shortly.
+                <h3 className="text-3xl font-serif mb-4 text-ink glow-text">Payment Successful</h3>
+                <p className="text-ink/60 text-sm font-light max-w-xs mx-auto">
+                  Your acquisition of <strong className="text-accent">{order.title}</strong> has been secured. Our curators will begin shipment processing shortly.
                 </p>
               </motion.div>
             ) : loading ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <Loader2 className="w-10 h-10 animate-spin text-gold" />
-                <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/40">Initializing Secure Gateway</p>
+                <Loader2 className="w-10 h-10 animate-spin text-accent glow-text" />
+                <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-accent/70 animate-pulse">Initializing Secure Gateway</p>
               </div>
             ) : (
               <motion.div
@@ -262,33 +263,33 @@ export const PaymentModal = ({ isOpen, onClose, order }) => {
                 {/* Summary */}
                 <div className="flex justify-between items-end">
                   <div>
-                    <h4 className="text-2xl font-serif font-bold mb-1">{order.title}</h4>
-                    <p className="text-xs text-ink/40 font-light">Original price: ${Number(order.price).toLocaleString()} USD</p>
+                    <h4 className="text-2xl font-serif font-bold mb-1 text-ink">{order.title}</h4>
+                    <p className="text-xs text-ink/50 font-light">Original price: ${Number(order.price).toLocaleString()} USD</p>
                   </div>
                   
                   <div className="relative">
                     <button 
                       onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                      className="flex items-center gap-2 px-4 py-2 bg-paper border border-ink/5 text-[10px] uppercase tracking-widest font-bold hover:border-gold transition-all"
+                      className="flex items-center gap-2 px-4 py-2 glass-button text-[10px] uppercase tracking-widest font-bold text-ink/80 hover:text-accent hover:border-accent/50 transition-all"
                     >
-                      <Globe className="w-4 h-4 text-gold" />
+                      <Globe className="w-4 h-4 text-accent" />
                       {selectedCurrency?.code}
                       <ChevronDown className={`w-3 h-3 transition-transform ${showCurrencyDropdown ? "rotate-180" : ""}`} />
                     </button>
                     
                     {showCurrencyDropdown && (
-                      <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-ink/10 shadow-2xl z-50 max-h-60 overflow-y-auto custom-scrollbar">
+                      <div className="absolute top-full right-0 mt-2 w-64 bg-surface border border-white/10 shadow-2xl rounded-xl z-50 max-h-60 overflow-y-auto custom-scrollbar">
                         {currencies.map(c => (
                           <button
                             key={c.code}
                             onClick={() => handleCurrencySelect(c)}
-                            className="w-full px-6 py-4 text-left hover:bg-paper flex items-center justify-between group transition-colors"
+                            className="w-full px-6 py-4 text-left hover:bg-white/5 flex items-center justify-between group transition-colors"
                           >
                             <div>
-                              <span className="text-[10px] font-bold text-ink group-hover:text-gold">{c.code}</span>
-                              <p className="text-[9px] text-ink/40 uppercase tracking-tighter">{c.name}</p>
+                              <span className="text-[10px] font-bold text-ink group-hover:text-accent">{c.code}</span>
+                              <p className="text-[9px] text-ink/50 uppercase tracking-tighter">{c.name}</p>
                             </div>
-                            <span className="text-xs font-serif italic text-ink/30">{c.symbol}</span>
+                            <span className="text-xs font-serif italic text-ink/40">{c.symbol}</span>
                           </button>
                         ))}
                       </div>
@@ -296,10 +297,10 @@ export const PaymentModal = ({ isOpen, onClose, order }) => {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-end border-b border-ink/5 pb-8">
-                   <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-ink/30">Total Payment Due</p>
+                <div className="flex justify-between items-end border-b border-white/5 pb-8">
+                   <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-ink/50">Total Payment Due</p>
                    <div className="text-right">
-                     <span className="text-5xl font-serif font-bold text-ink">
+                     <span className="text-5xl font-serif font-bold text-accent glow-text">
                        {selectedCurrency?.symbol}{convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                      </span>
                    </div>

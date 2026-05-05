@@ -148,17 +148,18 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-80px)] flex items-center justify-center bg-white px-4 overflow-hidden">
-      <div className="max-w-xl w-full p-14 rounded-2xl bg-white border border-ink/5 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gold"></div>
+    <div className="h-[calc(100vh-80px)] flex items-center justify-center relative px-4 overflow-hidden">
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gold/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+      <div className="max-w-xl w-full p-14 glass-card relative overflow-hidden z-10 shadow-[0_20px_60px_rgba(42,35,24,0.15)]">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold/40 via-gold to-gold/40"></div>
 
         <div className="text-center mb-10">
-          <h2 className="text-4xl font-serif mb-2">Welcome Back</h2>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-ink/40 font-bold">Access your BidVora account</p>
+          <h2 className="text-4xl font-serif mb-2 text-ink letterpress">Welcome Back</h2>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-ink/50 font-bold">Access your BidVora account</p>
         </div>
 
         {error && (
-          <div className="mb-8 p-4 bg-red-50 text-red-600 text-[11px] uppercase tracking-widest font-bold flex items-center gap-2 border-l-2 border-red-600">
+          <div className="mb-8 p-4 bg-red-50 text-red-700 text-[11px] uppercase tracking-widest font-bold flex items-center gap-2 border-l-4 border-red-600 rounded-r">
             <AlertCircle className="w-4 h-4" />
             {error}
           </div>
@@ -168,22 +169,22 @@ export const LoginPage = () => {
           <button
             onClick={handleGoogleLogin}
             disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 py-4 border border-ink/10 hover:bg-paper transition-all group"
+            className="w-full flex items-center justify-center gap-3 py-4 bg-white border border-ink/10 text-ink shadow-[0_2px_8px_rgba(42,35,24,0.08)] hover:shadow-[0_4px_16px_rgba(42,35,24,0.12)] hover:border-ink/20 transition-all hover-lift group rounded-lg"
           >
             {googleLoading ? (
               <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
             ) : (
               <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
             )}
-            <span className="text-[10px] uppercase tracking-widest font-bold text-ink/60 group-hover:text-ink">
+            <span className="text-[10px] uppercase tracking-widest font-bold text-ink/70 group-hover:text-ink transition-colors">
               Continue with Google
             </span>
           </button>
 
           <div className="relative flex items-center py-4">
-            <div className="flex-grow border-t border-ink/5"></div>
-            <span className="flex-shrink mx-4 text-[9px] uppercase tracking-widest font-bold text-ink/20">or use email</span>
-            <div className="flex-grow border-t border-ink/5"></div>
+            <div className="flex-grow border-t border-ink/10"></div>
+            <span className="flex-shrink mx-4 text-[9px] uppercase tracking-widest font-bold text-ink/40">or use email</span>
+            <div className="flex-grow border-t border-ink/10"></div>
           </div>
 
           <form onSubmit={(e) => e.preventDefault()} className="space-y-10">
@@ -194,7 +195,7 @@ export const LoginPage = () => {
               {/* EMAIL */}
               {step === 1 && (
                 <div>
-                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
+                  <label className="text-xs uppercase tracking-widest text-ink/50 block mb-2 font-bold">
                     Email Address
                   </label>
                   <input
@@ -208,7 +209,7 @@ export const LoginPage = () => {
                       });
                       setError("");
                     }}
-                    className="w-full border-b border-ink/10 py-5 text-xl outline-none focus:border-gold transition-colors"
+                    className="w-full border-b-2 border-ink/20 py-5 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                   />
                 </div>
               )}
@@ -216,7 +217,7 @@ export const LoginPage = () => {
               {/* PASSWORD */}
               {step === 2 && (
                 <div>
-                  <label className="text-xs uppercase tracking-widest text-ink/40 block mb-2 font-bold">
+                  <label className="text-xs uppercase tracking-widest text-ink/50 block mb-2 font-bold">
                     Password
                   </label>
                   <div className="relative">
@@ -228,7 +229,7 @@ export const LoginPage = () => {
                         setForm({ ...form, password: e.target.value });
                         setError("");
                       }}
-                      className="w-full border-b border-ink/10 py-5 pr-12 text-xl outline-none focus:border-gold transition-colors"
+                      className="w-full border-b-2 border-ink/20 py-5 pr-12 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                     />
                     <button
                       type="button"
@@ -255,7 +256,7 @@ export const LoginPage = () => {
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="text-xs uppercase tracking-widest text-ink/60 hover:text-ink font-bold"
+                  className="text-xs uppercase tracking-widest text-ink/60 hover:text-gold transition-colors font-bold"
                 >
                   Back
                 </button>
@@ -265,20 +266,20 @@ export const LoginPage = () => {
                 type="button"
                 onClick={handleNext}
                 disabled={loading}
-                className="ml-auto px-10 py-4 bg-ink text-white text-[10px] uppercase tracking-[0.4em] hover:bg-gold transition-all font-bold shadow-lg flex items-center justify-center gap-2"
+                className="ml-auto px-10 py-4 bg-ink text-paper text-[10px] uppercase tracking-[0.4em] hover:bg-gold transition-all font-bold shadow-[0_4px_16px_rgba(42,35,24,0.2)] hover:shadow-[0_6px_20px_rgba(197,160,89,0.4)] flex items-center justify-center gap-2 rounded"
               >
-                {loading && <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />}
+                {loading && <div className="w-3 h-3 border border-paper border-t-transparent rounded-full animate-spin" />}
                 {step === 1 ? "Next" : "Login"}
               </button>
             </div>
           </form>
         </div>
 
-        <p className="mt-12 text-center text-[10px] uppercase tracking-widest text-ink/40 font-bold">
+        <p className="mt-12 text-center text-[10px] uppercase tracking-widest text-ink/50 font-bold">
           New to Bidvora?{" "}
           <Link
             to="/register"
-            className="text-ink font-bold hover:text-gold transition-colors"
+            className="text-gold font-bold hover:underline transition-all"
           >
             Create an account
           </Link>

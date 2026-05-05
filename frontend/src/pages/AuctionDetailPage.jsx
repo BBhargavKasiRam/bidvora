@@ -119,10 +119,10 @@ const CountdownTimer = ({ endTime, onExtended }) => {
       <span
         className={`font-mono font-bold text-lg ${
           isCritical
-            ? "text-red-500 animate-pulse"
+            ? "text-red-500 animate-pulse drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]"
             : isUrgent
-            ? "text-amber-500"
-            : "text-gold"
+            ? "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.6)]"
+            : "text-accent glow-text"
         }`}
       >
         {timeLeft}
@@ -153,16 +153,16 @@ const BidHistory = ({ bids }) => {
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: idx * 0.04 }}
-          className={`flex items-center justify-between p-3 border ${
-            idx === 0 ? "border-gold/30 bg-gold/5" : "border-ink/5 bg-white"
+          className={`flex items-center justify-between p-4 mb-2 rounded-xl border transition-all ${
+            idx === 0 ? "border-accent/50 bg-accent/10 shadow-[0_0_20px_rgba(0,240,255,0.15)]" : "border-white/5 glass bg-surface/50"
           }`}
         >
           <div className="flex items-center gap-3">
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                 idx === 0
-                  ? "bg-gold text-ink"
-                  : "bg-paper text-ink/40 border border-ink/10"
+                  ? "bg-accent text-surface shadow-[0_0_10px_rgba(0,240,255,0.5)]"
+                  : "bg-surface border border-white/10 text-ink/60"
               }`}
             >
               {idx === 0 ? "★" : idx + 1}
@@ -186,13 +186,13 @@ const BidHistory = ({ bids }) => {
           <div className="text-right">
             <span
               className={`text-lg font-serif font-bold ${
-                idx === 0 ? "text-gold" : "text-ink"
+                idx === 0 ? "text-accent glow-text" : "text-ink"
               }`}
             >
               ${Number(bid.amount).toLocaleString()}
             </span>
             {idx === 0 && (
-              <p className="text-[8px] uppercase tracking-widest text-gold font-bold">
+              <p className="text-[8px] uppercase tracking-widest text-accent font-bold animate-pulse">
                 Leading
               </p>
             )}
@@ -827,7 +827,8 @@ export const AuctionDetailPage = () => {
   // ─── SELLER VIEW ──────────────────────────────────────────────────────────
   if (isConsignor) {
     return (
-      <div className="max-w-5xl mx-auto px-8 py-16 font-sans text-ink">
+      <div className="max-w-5xl mx-auto px-8 py-16 font-sans text-ink relative">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
         <AnimatePresence>
           {isModalOpen && (
             <motion.div
@@ -1223,7 +1224,8 @@ export const AuctionDetailPage = () => {
 
   // ─── BUYER / PUBLIC VIEW ──────────────────────────────────────────────────
   return (
-    <div className="max-w-6xl mx-auto px-8 py-16 font-sans text-ink">
+    <div className="max-w-6xl mx-auto px-8 py-16 font-sans text-ink relative">
+      <div className="absolute top-20 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
       <AnimatePresence>
         {isModalOpen && (
           <motion.div
@@ -1349,8 +1351,8 @@ export const AuctionDetailPage = () => {
           </p>
 
 
-          <div className="bg-white border border-ink/10 p-6 shadow-2xl relative overflow-hidden mt-6">
-            <div className="absolute top-0 left-0 w-1 h-full bg-gold" />
+          <div className="glass-card border border-white/10 p-8 relative overflow-hidden mt-6 hover:shadow-[0_0_30px_rgba(0,240,255,0.15)] transition-all duration-500">
+            <div className="absolute top-0 left-0 w-1 h-full bg-accent shadow-[0_0_10px_rgba(0,240,255,0.8)]" />
 
             <div className="mb-6">
               <span className="text-[10px] uppercase tracking-widest text-ink/40 block mb-1 font-bold">
@@ -1443,7 +1445,7 @@ export const AuctionDetailPage = () => {
                 <button
                   type="submit"
                   disabled={bidLoading}
-                  className="w-full py-5 bg-ink text-paper text-[10px] uppercase tracking-[0.4em] hover:bg-gold transition-colors font-bold shadow-xl flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-5 glass-button bg-accent/20 border-accent/50 text-accent text-[12px] uppercase tracking-[0.4em] hover:bg-accent hover:text-surface hover:glow-accent transition-all font-bold shadow-[0_0_20px_rgba(0,240,255,0.2)] flex items-center justify-center gap-2 disabled:opacity-50 hover-lift"
                 >
                   <Gavel className="w-4 h-4" />
                   {bidLoading ? "Placing Bid…" : "Place Bid"}

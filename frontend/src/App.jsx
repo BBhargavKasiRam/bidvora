@@ -23,9 +23,9 @@ const SellerAnalyticsPage = lazy(() => import("./pages/SellerAnalyticsPage").the
 const MediatorDashboardPage = lazy(() => import("./pages/MediatorDashboardPage").then(m => ({ default: m.MediatorDashboardPage })));
 
 const PageLoader = () => (
-  <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
-    <Loader2 className="w-10 h-10 animate-spin text-gold" />
-    <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-ink/40">Loading Command Center</p>
+  <div className="h-[60vh] flex flex-col items-center justify-center gap-6 relative">
+    <Loader2 className="w-12 h-12 animate-spin text-gold relative z-10" />
+    <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-ink/70 relative z-10 animate-pulse">Loading Collection</p>
   </div>
 );
 
@@ -95,17 +95,18 @@ export default function App() {
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-ink/10 py-20 px-8 mt-32 bg-white">
-          <div className="max-w-7xl mx-auto">
+        <footer className="border-t border-ink/10 py-20 px-8 mt-32 bg-white/50 backdrop-blur-md relative overflow-hidden">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-gold/5 rounded-full blur-[100px] pointer-events-none"></div>
+          <div className="max-w-7xl mx-auto relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mb-16">
               <div>
                 <div className="flex items-center gap-3 mb-6">
                   <Gavel className="w-8 h-8 text-gold" />
-                  <span className="text-2xl font-serif font-bold tracking-tight">
+                  <span className="text-2xl font-serif font-bold tracking-tight text-ink">
                     BIDVORA
                   </span>
                 </div>
-                <p className="text-sm text-ink/50 font-light leading-relaxed max-w-xs">
+                <p className="text-sm text-ink/70 font-light leading-relaxed max-w-xs">
                   The world's most exclusive marketplace for rare acquisitions
                   and timeless treasures. Curated for the discerning collector.
                 </p>
@@ -113,22 +114,22 @@ export default function App() {
 
               <div className="grid grid-cols-2 gap-8 col-span-1 md:col-span-2">
                 <div>
-                  <h4 className="text-[10px] uppercase tracking-[0.3em] font-bold mb-6 text-ink/40">
+                  <h4 className="text-[10px] uppercase tracking-[0.3em] font-bold mb-6 text-gold">
                     Marketplace
                   </h4>
-                  <ul className="space-y-4 text-xs uppercase tracking-widest font-medium text-ink/60">
+                  <ul className="space-y-4 text-xs uppercase tracking-widest font-medium text-ink/70">
                     <li>
-                      <a href="#" className="hover:text-gold transition-colors">
+                      <a href="#" className="hover:text-gold transition-all">
                         Browse All
                       </a>
                     </li>
                     <li>
-                      <a href="#" className="hover:text-gold transition-colors">
+                      <a href="#" className="hover:text-gold transition-all">
                         Recent Sales
                       </a>
                     </li>
                     <li>
-                      <a href="#" className="hover:text-gold transition-colors">
+                      <a href="#" className="hover:text-gold transition-all">
                         Upcoming
                       </a>
                     </li>
@@ -136,22 +137,22 @@ export default function App() {
                 </div>
 
                 <div>
-                  <h4 className="text-[10px] uppercase tracking-[0.3em] font-bold mb-6 text-ink/40">
+                  <h4 className="text-[10px] uppercase tracking-[0.3em] font-bold mb-6 text-gold">
                     Company
                   </h4>
-                  <ul className="space-y-4 text-xs uppercase tracking-widest font-medium text-ink/60">
+                  <ul className="space-y-4 text-xs uppercase tracking-widest font-medium text-ink/70">
                     <li>
-                      <a href="#" className="hover:text-gold transition-colors">
+                      <a href="#" className="hover:text-gold transition-all">
                         About
                       </a>
                     </li>
                     <li>
-                      <a href="#" className="hover:text-gold transition-colors">
+                      <a href="#" className="hover:text-gold transition-all">
                         Privacy
                       </a>
                     </li>
                     <li>
-                      <a href="#" className="hover:text-gold transition-colors">
+                      <a href="#" className="hover:text-gold transition-all">
                         Terms
                       </a>
                     </li>
@@ -160,18 +161,18 @@ export default function App() {
               </div>
             </div>
 
-            <div className="pt-12 border-t border-ink/5 flex flex-col md:flex-row justify-between items-center gap-6">
-              <p className="text-[9px] uppercase tracking-[0.4em] text-ink/30">
+            <div className="pt-12 border-t border-ink/10 flex flex-col md:flex-row justify-between items-center gap-6">
+              <p className="text-[9px] uppercase tracking-[0.4em] text-ink/50">
                 © 2026 Bidvora International. All Rights Reserved.
               </p>
               <div className="flex gap-10">
-                <span className="text-[9px] uppercase tracking-[0.4em] text-ink/30">
+                <span className="text-[9px] uppercase tracking-[0.4em] text-ink/50">
                   London
                 </span>
-                <span className="text-[9px] uppercase tracking-[0.4em] text-ink/30">
+                <span className="text-[9px] uppercase tracking-[0.4em] text-ink/50">
                   New York
                 </span>
-                <span className="text-[9px] uppercase tracking-[0.4em] text-ink/30">
+                <span className="text-[9px] uppercase tracking-[0.4em] text-ink/50">
                   Hong Kong
                 </span>
               </div>
@@ -182,4 +183,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
