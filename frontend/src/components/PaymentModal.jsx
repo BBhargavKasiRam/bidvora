@@ -1,149 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { loadStripe } from "@stripe/stripe-js";
-import {
-  Elements,
-  CardElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Lock, CreditCard, Globe, ChevronDown, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { X, Lock, Globe, ChevronDown, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
 import { getSocket } from "../lib/socket";
 
-// Initialize Stripe with a placeholder if VITE_STRIPE_PUBLIC_KEY is not set
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || "pk_test_placeholder");
-
-const CheckoutForm = ({ order, currency, amount, onSuccess, onCancel, isMock }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [error, setError] = useState(null);
-  const [processing, setProcessing] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-
-    setProcessing(true);
-    setError(null);
-
-    try {
-      // Create PaymentIntent on the backend
-      const { clientSecret, mock } = await api.post("/payments/create-intent", {
-        auctionId: order.id,
-        currency: currency.code,
-      });
-
-      if (mock) {
-        // Simulate a delay for realism
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Record transaction in database even for mock
-        await api.post("/payments/confirm-payment", {
-          auctionId: order.id,
-          paymentIntentId: "mock_pi_" + Date.now()
-        });
-        
-        onSuccess({ id: "mock_pi_" + Date.now() });
-        return;
-      }
-
-      // Confirm payment with Stripe
-      const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement),
-          billing_details: {
-            name: "Valued Collector",
-          },
-        },
-      });
-
-      if (result.error) {
-        setError(result.error.message);
-      } else if (result.paymentIntent.status === "succeeded") {
-        // Record transaction in database
-        await api.post("/payments/confirm-payment", {
-          auctionId: order.id,
-          paymentIntentId: result.paymentIntent.id
-        });
-        onSuccess(result.paymentIntent);
-      }
-    } catch (err) {
-      setError(err.message || "An unexpected error occurred.");
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="p-6 bg-surface border border-white/5 rounded-xl shadow-inner shadow-black/50">
-        <div className="flex justify-between items-center mb-6">
-          <label className="text-[10px] uppercase tracking-widest font-bold text-ink/60">Card Details</label>
-          <div className="flex gap-2">
-            <Lock className="w-3 h-3 text-accent glow-text" />
-            <span className="text-[9px] uppercase tracking-widest font-bold text-accent">Secure Encrypted</span>
-          </div>
-        </div>
-        
-        <div className="px-4 py-6 bg-paper rounded-lg border border-white/5">
-          <CardElement 
-            options={{
-              style: {
-                base: {
-                  fontSize: '16px',
-                  color: '#ffffff',
-                  '::placeholder': { color: '#6b7280' },
-                  fontFamily: 'Inter, sans-serif',
-                },
-                invalid: { color: '#ef4444' },
-              },
-            }}
-          />
-        </div>
-      </div>
-
-      {error && (
-        <div className="flex gap-3 p-4 bg-red-500/10 text-red-400 text-xs items-center border border-red-500/20 rounded-lg">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <p>{error}</p>
-        </div>
-      )}
-
-      {isMock && (
-        <div className="p-4 bg-accent/10 text-accent text-[10px] uppercase tracking-widest font-bold flex gap-3 items-center border border-accent/20 rounded-lg">
-          <AlertCircle className="w-4 h-4" />
-          <p>Sandbox Mode: Payment will be simulated (no real charge).</p>
-        </div>
-      )}
-
-      <div className="flex gap-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={processing}
-          className="flex-1 py-4 text-[10px] uppercase tracking-widest font-bold border border-white/10 hover:bg-white/5 transition-all disabled:opacity-50 rounded-xl text-ink/70"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={!stripe || processing}
-          className="flex-[2] py-4 glass-button bg-accent/20 border-accent/50 text-accent text-[10px] uppercase tracking-widest font-bold hover:bg-accent hover:text-surface hover:glow-accent transition-all relative overflow-hidden group disabled:opacity-50 rounded-xl"
-        >
-          {processing ? (
-            <div className="flex items-center justify-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Processing...
-            </div>
-          ) : (
-            `Pay ${currency.symbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} Now`
-          )}
-        </button>
-      </div>
-    </form>
-  );
-};
+// Removed CheckoutForm as Razorpay uses its own modal
 
 export const PaymentModal = ({ isOpen, onClose, order }) => {
   const [currencies, setCurrencies] = useState([]);
@@ -152,6 +13,8 @@ export const PaymentModal = ({ isOpen, onClose, order }) => {
   const [loading, setLoading] = useState(true);
   const [isPaid, setIsPaid] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!isOpen || !order) return;
@@ -182,6 +45,73 @@ export const PaymentModal = ({ isOpen, onClose, order }) => {
       setConvertedAmount(data.converted);
     } catch (err) {
       console.error("Conversion failed:", err);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!selectedCurrency || processing) return;
+
+    setProcessing(true);
+    setError(null);
+
+    try {
+      // 1. Create order on backend
+      const { orderId, amount, currency } = await api.post("/payments/create-order", {
+        auctionId: order.id,
+        currency: selectedCurrency.code,
+      });
+
+      // 2. Initialize Razorpay
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        amount: amount,
+        currency: currency,
+        name: "Bidvora",
+        description: `Acquisition of ${order.title}`,
+        order_id: orderId,
+        handler: async (response) => {
+          try {
+            setProcessing(true);
+            // 3. Verify payment on backend
+            const verifyRes = await api.post("/payments/verify-payment", {
+              ...response,
+              auctionId: order.id
+            });
+
+            if (verifyRes.success) {
+              handleSuccess();
+            } else {
+              setError("Payment verification failed. Please contact support.");
+            }
+          } catch (err) {
+            setError("Error verifying payment signature.");
+          } finally {
+            setProcessing(false);
+          }
+        },
+        prefill: {
+          name: "Valued Collector",
+        },
+        theme: {
+          color: "#00F0FF",
+        },
+        modal: {
+          ondismiss: function() {
+            setProcessing(false);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        setError(response.error.description);
+        setProcessing(false);
+      });
+      rzp.open();
+    } catch (err) {
+      console.error("Payment initialization failed:", err);
+      setError(err.message || "Failed to initialize secure payment gateway.");
+      setProcessing(false);
     }
   };
 
@@ -306,16 +236,39 @@ export const PaymentModal = ({ isOpen, onClose, order }) => {
                    </div>
                 </div>
 
-                <Elements stripe={stripePromise}>
-                  <CheckoutForm 
-                    order={order} 
-                    currency={selectedCurrency} 
-                    amount={convertedAmount}
-                    onSuccess={handleSuccess}
-                    onCancel={onClose}
-                    isMock={!import.meta.env.VITE_STRIPE_PUBLIC_KEY}
-                  />
-                </Elements>
+                <div className="space-y-8">
+                  {error && (
+                    <div className="flex gap-3 p-4 bg-red-500/10 text-red-400 text-xs items-center border border-red-500/20 rounded-lg">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <p>{error}</p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      disabled={processing}
+                      className="flex-1 py-4 text-[10px] uppercase tracking-widest font-bold border border-white/10 hover:bg-white/5 transition-all disabled:opacity-50 rounded-xl text-ink/70"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handlePayment}
+                      disabled={processing || !selectedCurrency}
+                      className="flex-[2] py-4 glass-button bg-accent/20 border-accent/50 text-accent text-[10px] uppercase tracking-widest font-bold hover:bg-accent hover:text-surface hover:glow-accent transition-all relative overflow-hidden group disabled:opacity-50 rounded-xl"
+                    >
+                      {processing ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Initializing...
+                        </div>
+                      ) : (
+                        `Pay ${selectedCurrency?.symbol}${convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })} Now`
+                      )}
+                    </button>
+                  </div>
+                </div>
 
                 <div className="text-center space-y-4">
                   <div className="flex items-center justify-center gap-6 opacity-30 grayscale">

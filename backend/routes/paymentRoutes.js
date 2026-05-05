@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const db = require("../config/db");
+const Razorpay = require("razorpay");
+const crypto = require("crypto");
 
 // Supported currencies and their exchange rates from USD
 const EXCHANGE_RATES = {
@@ -22,12 +24,15 @@ const EXCHANGE_RATES = {
   KRW: 1325.0,
 };
 
-// Zero-decimal currencies (no minor units)
-const ZERO_DECIMAL_CURRENCIES = ["JPY", "KRW"];
+// Initialize Razorpay
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
-// POST /api/payments/create-intent
-// Creates a Stripe PaymentIntent for a won auction
-router.post("/create-intent", authMiddleware, async (req, res) => {
+// POST /api/payments/create-order
+// Creates a Razorpay Order for a won auction
+router.post("/create-order", authMiddleware, async (req, res) => {
   const { auctionId, currency = "USD" } = req.body;
   const userId = req.user.id;
 
@@ -61,50 +66,74 @@ router.post("/create-intent", authMiddleware, async (req, res) => {
 
     const auction = results[0];
     const amountUSD = parseFloat(auction.current_price);
-
     const rate = EXCHANGE_RATES[currencyUpper];
     const convertedAmount = amountUSD * rate;
 
-    const stripeAmount = ZERO_DECIMAL_CURRENCIES.includes(currencyUpper)
-      ? Math.round(convertedAmount)
-      : Math.round(convertedAmount * 100);
+    // Razorpay amount is in smallest currency unit (paise for INR, cents for USD)
+    const razorpayAmount = Math.round(convertedAmount * 100);
 
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeKey || stripeKey.includes("placeholder")) {
-      return res.json({
-        clientSecret: "pi_mock_" + Date.now() + "_secret_mock",
-        amount: convertedAmount,
-        currency: currencyUpper,
-        auctionTitle: auction.title,
-        mock: true,
-      });
-    }
-
-    const stripe = require("stripe")(stripeKey);
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: stripeAmount,
-      currency: currencyUpper.toLowerCase(),
-      metadata: {
+    const options = {
+      amount: razorpayAmount,
+      currency: currencyUpper,
+      receipt: `receipt_${auctionId}_${Date.now()}`,
+      notes: {
         auction_id: String(auctionId),
         buyer_id: String(userId),
-        original_usd: String(amountUSD),
+        auction_title: auction.title,
       },
-      description: `Bidvora: ${auction.title} (Auction #${auctionId})`,
-      automatic_payment_methods: { enabled: true },
-    });
+    };
+
+    const order = await razorpay.orders.create(options);
 
     res.json({
-      clientSecret: paymentIntent.client_secret,
-      amount: convertedAmount,
-      currency: currencyUpper,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
       auctionTitle: auction.title,
-      mock: false,
     });
   } catch (err) {
-    console.error("Payment intent error:", err);
+    console.error("Razorpay order error:", err);
     res.status(500).json({ message: err.message || "Server error" });
   }
 });
+
+// POST /api/payments/verify-payment
+// Verifies Razorpay payment signature
+router.post("/verify-payment", authMiddleware, async (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, auctionId } = req.body;
+  const userId = req.user.id;
+
+  const sign = razorpay_order_id + "|" + razorpay_payment_id;
+  const expectedSign = crypto
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .update(sign.toString())
+    .digest("hex");
+
+  if (razorpay_signature === expectedSign) {
+    try {
+      // Get the final price from the auction
+      const [results] = await db.query("SELECT current_price FROM auctions WHERE id = ?", [auctionId]);
+      if (results.length === 0) return res.status(500).json({ message: "Auction not found" });
+
+      const finalPrice = results[0].current_price;
+
+      // Check if transaction already exists
+      const [trans] = await db.query("SELECT id FROM transactions WHERE auction_id = ?", [auctionId]);
+      if (trans.length > 0) return res.json({ success: true, message: "Transaction already recorded" });
+
+      const sql = "INSERT INTO transactions (auction_id, winner_id, final_price, payment_id) VALUES (?, ?, ?, ?)";
+      await db.query(sql, [auctionId, userId, finalPrice, razorpay_payment_id]);
+
+      return res.json({ success: true, message: "Payment verified and recorded" });
+    } catch (err) {
+      console.error("Payment verification record error:", err);
+      return res.status(500).json({ success: false, message: "Failed to record transaction" });
+    }
+  } else {
+    return res.status(400).json({ success: false, message: "Invalid signature" });
+  }
+});
+
 
 // POST /api/payments/confirm-payment
 // Records a successful transaction in the database
