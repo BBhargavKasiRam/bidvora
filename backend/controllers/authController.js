@@ -4,9 +4,19 @@ const jwt = require("jsonwebtoken");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 
-const uploadToCloudinary = (fileBuffer) => {
-  return new Promise((resolve, reject) => {
+// Configure nodemailer transporter using environment variables
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+const uploadToCloudinary = (fileBuffer) =>
+  new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       { folder: "bidvora/profiles" },
       (error, result) => {
@@ -16,7 +26,6 @@ const uploadToCloudinary = (fileBuffer) => {
     );
     streamifier.createReadStream(fileBuffer).pipe(stream);
   });
-};
 
 // ─── Helper: Generate 6-digit OTP ────────────────────────────────────────────
 const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
@@ -58,7 +67,7 @@ exports.register = async (req, res) => {
       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
       [name, email, hashed, role || "buyer"]
     );
-    
+
     // Clean up OTP
     global.otpStore.delete(`register:${email}`);
 
@@ -114,12 +123,13 @@ exports.login = async (req, res) => {
 // 🔐 SOCIAL LOGIN (Google, Microsoft, Facebook)
 exports.socialLogin = async (req, res) => {
   try {
-    let { email, name, profile_image, uid } = req.body;
+    let { email, name, profile_image, uid, role } = req.body;
     email = email.trim().toLowerCase().replace(/\s+/g, "");
 
     const [results] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
     let user = results[0];
     const SECRET = process.env.JWT_SECRET || "secret";
+    const validRoles = ['buyer', 'consignor', 'auctioneer'];
 
     if (user) {
       // Existing user: Update profile image if they don't have one
@@ -139,22 +149,31 @@ exports.socialLogin = async (req, res) => {
       const { password: _, ...userWithoutPassword } = user;
       return res.json({ token, user: userWithoutPassword });
     } else {
-      // New user: Create account
+      // New user: role is required — frontend must show role picker first
+      if (!role || !validRoles.includes(role)) {
+        return res.status(200).json({
+          needRoleSelection: true,
+          message: "Please select your role to complete registration.",
+          googleData: { email, name, profile_image, uid }
+        });
+      }
+
+      // Create account with selected role
       const [result] = await db.query(
-        "INSERT INTO users (name, email, profile_image, role, is_google_user) VALUES (?, ?, ?, ?)",
-        [name, email, profile_image, "buyer", 1]
+        "INSERT INTO users (name, email, profile_image, role, is_google_user) VALUES (?, ?, ?, ?, ?)",
+        [name, email, profile_image, role, 1]
       );
-      
+
       const newId = result.insertId;
       const token = jwt.sign(
-        { id: newId, role: "buyer" },
+        { id: newId, role },
         SECRET,
         { expiresIn: "7d" }
       );
 
       res.json({
         token,
-        user: { id: newId, name, email, role: "buyer", profile_image }
+        user: { id: newId, name, email, role, profile_image }
       });
     }
   } catch (err) {
@@ -202,7 +221,7 @@ exports.updateProfile = async (req, res) => {
     const userId = req.user.id;
     
     if (!name || !email) return res.status(400).json({ message: "Name and email are required" });
-
+    
     let imageUrl = null;
     if (req.file) {
       if (!req.file.mimetype.startsWith("image/")) return res.status(400).json({ message: "Only image files are allowed" });
@@ -232,6 +251,17 @@ exports.updateProfile = async (req, res) => {
     console.error("Profile update failed:", err);
     res.status(500).json({ message: "Profile update failed" });
   }
+};
+
+// ─── Helper: Send OTP Email ───────────────────────────────────────────
+const sendOtpEmail = async (email, otp, purpose, expires) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: `Your OTP for ${purpose} on BidVora`,
+    text: `Hello,\n\nYour OTP is: ${otp}\nIt will expire at ${expires.toISOString()} (10 minutes).\n\nIf you did not request this, you can safely ignore this email.\n\nBest regards,\nBidVora Team`,
+  };
+  await transporter.sendMail(mailOptions);
 };
 
 // 🔥 SEND OTP (for registration or password reset)
@@ -283,7 +313,10 @@ exports.sendOtp = async (req, res) => {
     console.log(`   Expires: ${expires.toISOString()}`);
     console.log(`========================\n`);
 
-    res.json({ message: "OTP generated. Check the backend console/logs for the code." });
+    // Send OTP via email
+    await sendOtpEmail(email, otp, purpose, expires);
+
+    res.json({ message: "OTP generated and sent via email. Check your inbox." });
   } catch (err) {
     console.error("Send OTP error:", err);
     res.status(500).json({ message: "Failed to generate OTP" });
@@ -366,7 +399,10 @@ exports.forgotPassword = async (req, res) => {
     console.log(`   Expires: ${expires.toISOString()}`);
     console.log(`========================\n`);
 
-    res.json({ message: "OTP generated. Check the backend console/logs for the code." });
+    // Send OTP via email
+    await sendOtpEmail(email, otp, "reset", expires);
+
+    res.json({ message: "OTP generated and sent to your email. Check your inbox." });
   } catch (err) {
     console.error("Forgot password error:", err);
     res.status(500).json({ message: "Server error" });

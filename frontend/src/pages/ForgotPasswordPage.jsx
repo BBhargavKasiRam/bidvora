@@ -237,7 +237,7 @@ export const ForgotPasswordPage = () => {
                     placeholder="your@email.com"
                   />
                   <p className="text-[10px] text-ink/40 mt-3 uppercase tracking-widest">
-                    Verification code will be logged to the server console
+                    Verification code will be sent to your email address
                   </p>
                 </div>
                 <div className="flex justify-between items-center">
@@ -259,7 +259,7 @@ export const ForgotPasswordPage = () => {
             {step === 2 && (
               <div className="space-y-8">
                 <div className="flex flex-col items-center gap-2">
-                  <p className="text-sm font-serif text-ink text-center">Check the server logs</p>
+                  <p className="text-sm font-serif text-ink text-center">Check your email</p>
                   <p className="text-[10px] uppercase tracking-widest text-ink/50 text-center">
                     Enter the 6-digit code for<br />
                     <span className="text-ink font-bold">{email}</span>

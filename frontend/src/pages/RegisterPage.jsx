@@ -161,6 +161,9 @@ export const RegisterPage = () => {
     }
   };
 
+  // Pending Google signup data (when role selection is needed)
+  const [pendingGoogleData, setPendingGoogleData] = useState(null);
+
   const handleSocialSignup = async (providerName) => {
     if (socialLoading) return;
     try {
@@ -176,8 +179,15 @@ export const RegisterPage = () => {
         email: socialUser.email,
         name: socialUser.displayName,
         profile_image: socialUser.photoURL,
-        uid: socialUser.uid
+        uid: socialUser.uid,
+        role: form.role
       });
+
+      // If backend says this is a new user who needs to pick a role
+      if (res.needRoleSelection) {
+        setPendingGoogleData(res.googleData);
+        return;
+      }
 
       login(res.token, res.user);
       navigate("/");
@@ -186,6 +196,26 @@ export const RegisterPage = () => {
       setError(`${providerName.charAt(0).toUpperCase() + providerName.slice(1)} account connection failed.`);
     } finally {
       setSocialLoading(null);
+    }
+  };
+
+  // Complete Google signup after role is selected
+  const completeSocialSignup = async (selectedRole) => {
+    if (!pendingGoogleData) return;
+    try {
+      setLoading(true);
+      setError("");
+      const res = await api.post("/auth/social-login", {
+        ...pendingGoogleData,
+        role: selectedRole
+      });
+      login(res.token, res.user);
+      navigate("/");
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to complete registration.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -333,7 +363,7 @@ export const RegisterPage = () => {
                     className="w-full border-b border-ink/20 py-5 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                   />
                   <p className="text-[10px] text-ink/40 mt-3 uppercase tracking-widest">
-                    An OTP will be displayed in the backend console to verify your email.
+                    An OTP will be sent to your email address to verify your account.
                   </p>
                 </div>
               )}
@@ -345,9 +375,9 @@ export const RegisterPage = () => {
                     <div className="w-14 h-14 bg-gold/10 rounded-full flex items-center justify-center mb-2">
                       <ShieldCheck className="w-7 h-7 text-gold" />
                     </div>
-                    <p className="text-sm font-serif text-ink text-center">Check the backend console</p>
+                    <p className="text-sm font-serif text-ink text-center">Check your email</p>
                     <p className="text-[10px] uppercase tracking-widest text-ink/50 text-center">
-                      Enter the 6-digit OTP shown in the server logs
+                      Enter the 6-digit OTP sent to your inbox
                     </p>
                   </div>
 
