@@ -169,9 +169,10 @@ exports.getAuctionById = async (req, res) => {
 
     // 1. Fetch the auction details
     const [auctionResults] = await db.query(
-      `SELECT a.*, u.name AS seller_name 
+      `SELECT a.*, u.name AS seller_name, m.name AS mediator_name 
        FROM auctions a 
        JOIN users u ON a.seller_id = u.id 
+       LEFT JOIN users m ON a.mediator_id = m.id 
        WHERE a.id = ?`,
       [id]
     );
@@ -385,8 +386,8 @@ exports.getSellerAnalytics = async (req, res) => {
   try {
     const sellerId = req.user.id;
 
-    if (req.user.role !== "seller" && req.user.role !== "consignor") {
-      return res.status(403).json({ message: "Only sellers can access analytics" });
+    if (req.user.role !== "consignor" && req.user.role !== "auctioneer") {
+      return res.status(403).json({ message: "Only consignors and auctioneers can access analytics" });
     }
 
     // Summary stats

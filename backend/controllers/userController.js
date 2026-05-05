@@ -10,7 +10,7 @@ exports.getMediators = async (req, res) => {
         u.id, u.name, u.email, u.profile_image, u.rating, u.items_sold,
         (SELECT COUNT(*) FROM auctions a WHERE a.mediator_id = u.id) as total_assignments
       FROM users u 
-      WHERE u.role = 'auctioneer'
+      WHERE u.role = 'mediator' OR u.role = 'auctioneer'
     `;
     let params = [];
 

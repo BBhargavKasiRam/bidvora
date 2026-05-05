@@ -4,7 +4,6 @@ const jwt = require("jsonwebtoken");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
 
 const uploadToCloudinary = (fileBuffer) => {
   return new Promise((resolve, reject) => {
@@ -19,65 +18,8 @@ const uploadToCloudinary = (fileBuffer) => {
   });
 };
 
-// 🔐 SEND REGISTER OTP
-exports.sendRegisterOTP = async (req, res) => {
-  try {
-    let { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Email is required" });
-    email = email.trim().toLowerCase().replace(/\s+/g, "");
-
-    const [existing] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
-    if (existing.length > 0) return res.status(400).json({ message: "Email already registered" });
-
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedOTP = await bcrypt.hash(otp, 10);
-    const expires = new Date(Date.now() + 10 * 60000); // 10 minutes
-
-    // Upsert into registration_otps
-    await db.query(
-      "INSERT INTO registration_otps (email, otp, expires_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE otp = ?, expires_at = ?",
-      [email, hashedOTP, expires, hashedOTP, expires]
-    );
-
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER || "noreply.bidvora@gmail.com", 
-        pass: process.env.EMAIL_PASS || "your-app-password" 
-      }
-    });
-
-    try {
-      await transporter.sendMail({
-        from: '"Bidvora Support" <support@bidvora.com>',
-        to: email,
-        subject: "Your Registration OTP",
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #333; text-align: center;">Welcome to Bidvora!</h2>
-            <p>You are almost there. Use the OTP below to complete your registration:</p>
-            <div style="background: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #D4AF37;">
-              ${otp}
-            </div>
-            <p style="color: #666; font-size: 12px; text-align: center; margin-top: 20px;">
-              This OTP will expire in 10 minutes. If you didn't request this, please ignore this email.
-            </p>
-          </div>
-        `
-      });
-      res.json({ message: "OTP sent to your email" });
-    } catch (emailErr) {
-      console.error("Email error:", emailErr);
-      res.json({ message: "OTP could not be sent. If in dev mode, use this OTP: " + otp });
-    }
-  } catch (err) {
-    console.error("Send register OTP error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+// ─── Helper: Generate 6-digit OTP ────────────────────────────────────────────
+const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 // 🔐 REGISTER
 exports.register = async (req, res) => {
@@ -97,15 +39,17 @@ exports.register = async (req, res) => {
     const [existing] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
     if (existing.length > 0) return res.status(400).json({ message: "Email already registered" });
 
-    const [otpResults] = await db.query("SELECT otp, expires_at FROM registration_otps WHERE email = ?", [email]);
-    if (otpResults.length === 0) return res.status(400).json({ message: "No OTP requested for this email" });
+    // Verify OTP from globalStore (for registration)
+    if (!global.otpStore || !global.otpStore.has(`register:${email}`)) {
+      return res.status(400).json({ message: "No OTP requested for this email" });
+    }
 
-    const registrationOtpData = otpResults[0];
-    if (new Date() > new Date(registrationOtpData.expires_at)) {
+    const registrationOtpData = global.otpStore.get(`register:${email}`);
+    if (new Date() > new Date(registrationOtpData.expires)) {
       return res.status(400).json({ message: "OTP has expired" });
     }
 
-    const isValid = await bcrypt.compare(otp, registrationOtpData.otp);
+    const isValid = await bcrypt.compare(otp.toString(), registrationOtpData.hashedOtp);
     if (!isValid) return res.status(400).json({ message: "Invalid OTP" });
 
     const hashed = await bcrypt.hash(password, 10);
@@ -116,7 +60,7 @@ exports.register = async (req, res) => {
     );
     
     // Clean up OTP
-    await db.query("DELETE FROM registration_otps WHERE email = ?", [email]);
+    global.otpStore.delete(`register:${email}`);
 
     res.json({ message: "User registered successfully" });
   } catch (err) {
@@ -197,7 +141,7 @@ exports.socialLogin = async (req, res) => {
     } else {
       // New user: Create account
       const [result] = await db.query(
-        "INSERT INTO users (name, email, profile_image, role, is_google_user) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO users (name, email, profile_image, role, is_google_user) VALUES (?, ?, ?, ?)",
         [name, email, profile_image, "buyer", 1]
       );
       
@@ -290,95 +234,141 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// 🔥 FORGOT PASSWORD (OTP)
-exports.forgotPassword = async (req, res) => {
+// 🔥 SEND OTP (for registration or password reset)
+// OTP is logged to the backend console (visible in server terminal / Render logs)
+exports.sendOtp = async (req, res) => {
   try {
-    const { email } = req.body;
+    let { email, purpose } = req.body;
     if (!email) return res.status(400).json({ message: "Email is required" });
-
-    const [results] = await db.query("SELECT id, name FROM users WHERE email = ?", [email]);
-    if (results.length === 0) return res.status(404).json({ message: "Email not found" });
-
-    const user = results[0];
-    
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedOTP = await bcrypt.hash(otp, 10);
-    const expires = new Date(Date.now() + 10 * 60000); // 10 minutes
-
-    await db.query(
-      "UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?",
-      [hashedOTP, expires, user.id]
-    );
-
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER || "noreply.bidvora@gmail.com", 
-        pass: process.env.EMAIL_PASS || "your-app-password" 
-      }
-    });
-
-    try {
-      await transporter.sendMail({
-        from: '"Bidvora Support" <support@bidvora.com>',
-        to: email,
-        subject: "Your Password Reset OTP",
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #333; text-align: center;">Password Reset</h2>
-            <p>Hi ${user.name},</p>
-            <p>You requested to reset your password. Use the OTP below to proceed:</p>
-            <div style="background: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #D4AF37;">
-              ${otp}
-            </div>
-            <p style="color: #666; font-size: 12px; text-align: center; margin-top: 20px;">
-              This OTP will expire in 10 minutes. If you didn't request this, please ignore this email.
-            </p>
-          </div>
-        `
-      });
-      res.json({ message: "OTP sent to your email" });
-    } catch (emailErr) {
-      console.error("Email error:", emailErr);
-      res.json({ message: "OTP could not be sent. If in dev mode, use this OTP: " + otp });
+    if (!purpose || !['register', 'reset'].includes(purpose)) {
+      return res.status(400).json({ message: "Invalid OTP purpose" });
     }
+
+    email = email.trim().toLowerCase();
+
+    if (purpose === 'register') {
+      const [existing] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
+      if (existing.length > 0) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+    } else if (purpose === 'reset') {
+      const [existing] = await db.query("SELECT id FROM users WHERE email = ?", [email]);
+      if (existing.length === 0) {
+        return res.status(404).json({ message: "Email not found" });
+      }
+    }
+
+    const otp = generateOtp();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    if (purpose === 'register') {
+      if (!global.otpStore) global.otpStore = new Map();
+      global.otpStore.set(`${purpose}:${email}`, {
+        hashedOtp,
+        expires,
+        purpose
+      });
+    } else {
+      await db.query(
+        "UPDATE users SET otp_code = ?, otp_expires = ?, otp_purpose = ? WHERE email = ?",
+        [hashedOtp, expires, purpose, email]
+      );
+    }
+
+    // ✅ OTP logged to backend console / Render logs
+    console.log(`\n🔐 ========================`);
+    console.log(`   OTP for ${email} [${purpose}]`);
+    console.log(`   Code: ${otp}`);
+    console.log(`   Expires: ${expires.toISOString()}`);
+    console.log(`========================\n`);
+
+    res.json({ message: "OTP generated. Check the backend console/logs for the code." });
   } catch (err) {
-    console.error("Forgot password error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Send OTP error:", err);
+    res.status(500).json({ message: "Failed to generate OTP" });
   }
 };
 
 // 🔥 VERIFY OTP
-exports.verifyOTP = async (req, res) => {
+exports.verifyOtp = async (req, res) => {
   try {
-    const { email, otp } = req.body;
-    if (!email || !otp) return res.status(400).json({ message: "Email and OTP are required" });
-
-    const [results] = await db.query(
-      "SELECT id, password_reset_token, password_reset_expires FROM users WHERE email = ?",
-      [email]
-    );
-
-    if (results.length === 0) return res.status(400).json({ message: "Invalid request" });
-
-    const user = results[0];
-    if (!user.password_reset_token || !user.password_reset_expires) {
-      return res.status(400).json({ message: "No OTP requested for this email" });
+    let { email, otp, purpose } = req.body;
+    if (!email || !otp || !purpose) {
+      return res.status(400).json({ message: "Email, OTP and purpose are required" });
     }
 
-    if (new Date() > new Date(user.password_reset_expires)) {
-      return res.status(400).json({ message: "OTP has expired" });
+    email = email.trim().toLowerCase();
+    let storedData = null;
+
+    if (purpose === 'register') {
+      if (global.otpStore && global.otpStore.has(`${purpose}:${email}`)) {
+        storedData = global.otpStore.get(`${purpose}:${email}`);
+      } else {
+        return res.status(400).json({ message: "OTP not found. Please request a new one." });
+      }
+    } else {
+      const [results] = await db.query(
+        "SELECT otp_code, otp_expires, otp_purpose FROM users WHERE email = ?",
+        [email]
+      );
+      if (results.length === 0) return res.status(400).json({ message: "Invalid request" });
+      const user = results[0];
+      if (!user.otp_code || user.otp_purpose !== purpose) {
+        return res.status(400).json({ message: "OTP not found. Please request a new one." });
+      }
+      storedData = { hashedOtp: user.otp_code, expires: user.otp_expires, purpose: user.otp_purpose };
     }
 
-    const isValid = await bcrypt.compare(otp, user.password_reset_token);
-    if (!isValid) return res.status(400).json({ message: "Invalid OTP" });
+    if (new Date() > new Date(storedData.expires)) {
+      return res.status(400).json({ message: "OTP has expired. Please request a new one." });
+    }
+
+    const isValid = await bcrypt.compare(otp.toString(), storedData.hashedOtp);
+    if (!isValid) {
+      return res.status(400).json({ message: "Invalid OTP. Please check and try again." });
+    }
+
+    // OTP verified — we don't clear it yet for 'reset' because resetPassword needs it.
+    // Wait, in resetPassword we check it again. So we can keep it or clear it.
+    // Let's keep it for 'reset' and clear for 'register' if needed, but actually verifyOtp usually just returns success.
 
     res.json({ message: "OTP verified successfully" });
   } catch (err) {
     console.error("Verify OTP error:", err);
+    res.status(500).json({ message: "Failed to verify OTP" });
+  }
+};
+
+// 🔥 FORGOT PASSWORD (legacy compatibility, now uses sendOtp flow)
+exports.forgotPassword = async (req, res) => {
+  try {
+    let { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+    email = email.trim().toLowerCase();
+
+    const [results] = await db.query("SELECT id, name FROM users WHERE email = ?", [email]);
+    if (results.length === 0) return res.status(404).json({ message: "Email not found" });
+
+    const otp = generateOtp();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+    const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await db.query(
+      "UPDATE users SET otp_code = ?, otp_expires = ?, otp_purpose = 'reset' WHERE email = ?",
+      [hashedOtp, expires, email]
+    );
+
+    // ✅ OTP logged to backend console / Render logs
+    console.log(`\n🔑 ========================`);
+    console.log(`   PASSWORD RESET OTP for ${email}`);
+    console.log(`   Code: ${otp}`);
+    console.log(`   Expires: ${expires.toISOString()}`);
+    console.log(`========================\n`);
+
+    res.json({ message: "OTP generated. Check the backend console/logs for the code." });
+  } catch (err) {
+    console.error("Forgot password error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -387,26 +377,34 @@ exports.verifyOTP = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
-    if (!email || !otp || !newPassword) return res.status(400).json({ message: "All fields are required" });
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
 
     const [results] = await db.query(
-      "SELECT id, password_reset_token, password_reset_expires FROM users WHERE email = ?",
-      [email]
+      "SELECT id, otp_code, otp_expires, otp_purpose FROM users WHERE email = ?",
+      [cleanEmail]
     );
     
     if (results.length === 0) return res.status(400).json({ message: "Invalid request" });
 
     const user = results[0];
-    if (!user.password_reset_token || !user.password_reset_expires) return res.status(400).json({ message: "Invalid or expired reset token" });
-    if (new Date() > new Date(user.password_reset_expires)) return res.status(400).json({ message: "Reset token has expired" });
+    if (!user.otp_code || user.otp_purpose !== 'reset') {
+      return res.status(400).json({ message: "Invalid or expired OTP. Please start over." });
+    }
+    if (new Date() > new Date(user.otp_expires)) {
+      return res.status(400).json({ message: "OTP has expired. Please request a new one." });
+    }
 
-    const isValid = await bcrypt.compare(otp, user.password_reset_token);
+    const isValid = await bcrypt.compare(otp.toString(), user.otp_code);
     if (!isValid) return res.status(400).json({ message: "Invalid OTP" });
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await db.query(
-      "UPDATE users SET password = ?, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?",
+      "UPDATE users SET password = ?, otp_code = NULL, otp_expires = NULL, otp_purpose = NULL, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?",
       [hashedPassword, user.id]
     );
     

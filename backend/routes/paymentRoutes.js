@@ -24,11 +24,20 @@ const EXCHANGE_RATES = {
   KRW: 1325.0,
 };
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// Lazy-initialize Razorpay so it doesn't crash at startup if env vars aren't loaded
+let _razorpay = null;
+const getRazorpay = () => {
+  if (!_razorpay) {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      throw new Error("Razorpay credentials are not configured in environment variables");
+    }
+    _razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  }
+  return _razorpay;
+};
 
 // POST /api/payments/create-order
 // Creates a Razorpay Order for a won auction
@@ -83,7 +92,7 @@ router.post("/create-order", authMiddleware, async (req, res) => {
       },
     };
 
-    const order = await razorpay.orders.create(options);
+    const order = await getRazorpay().orders.create(options);
 
     res.json({
       orderId: order.id,

@@ -69,26 +69,50 @@ const socketHandler = (io) => {
     
     socket.on("start-broadcast", ({ auctionId }) => {
       const aid = String(auctionId);
+      // If there's an existing broadcaster for this auction, clean up
+      if (broadcasters[aid] && broadcasters[aid] !== socket.id) {
+        io.to(broadcasters[aid]).emit("force-stop-broadcast");
+      }
       broadcasters[aid] = socket.id;
       socket.join(`auction:${aid}`);
       socket.to(`auction:${aid}`).emit("broadcaster-present", { broadcasterId: socket.id });
+      console.log(`Broadcast started for auction:${aid} by socket:${socket.id}`);
     });
 
     socket.on("viewer-ready", ({ auctionId, viewerId }) => {
       const aid = String(auctionId);
       const broadcasterId = broadcasters[aid];
-      if (broadcasterId) io.to(broadcasterId).emit("new-viewer", { viewerId });
+      if (broadcasterId) {
+        io.to(broadcasterId).emit("new-viewer", { viewerId });
+        console.log(`Viewer ${viewerId} ready for auction:${aid}, broadcaster:${broadcasterId}`);
+      } else {
+        // No broadcaster active — tell viewer
+        socket.emit("broadcast-ended");
+      }
     });
 
-    socket.on("offer", ({ targetId, offer, senderId }) => io.to(targetId).emit("offer", { offer, senderId }));
-    socket.on("answer", ({ targetId, answer, senderId }) => io.to(targetId).emit("answer", { answer, senderId }));
-    socket.on("ice-candidate", ({ targetId, candidate, senderId }) => io.to(targetId).emit("ice-candidate", { candidate, senderId }));
+    // ── WebRTC Signaling (with error handling) ──
+    socket.on("offer", ({ targetId, offer, senderId }) => {
+      if (!targetId || !offer) return;
+      io.to(targetId).emit("offer", { offer, senderId });
+    });
+
+    socket.on("answer", ({ targetId, answer, senderId }) => {
+      if (!targetId || !answer) return;
+      io.to(targetId).emit("answer", { answer, senderId });
+    });
+
+    socket.on("ice-candidate", ({ targetId, candidate, senderId }) => {
+      if (!targetId || !candidate) return;
+      io.to(targetId).emit("ice-candidate", { candidate, senderId });
+    });
 
     socket.on("broadcast-ended-notify", ({ auctionId }) => {
       const aid = String(auctionId);
       if (broadcasters[aid] === socket.id) {
         delete broadcasters[aid];
         io.to(`auction:${aid}`).emit("broadcast-ended");
+        console.log(`Broadcast ended for auction:${aid}`);
       }
     });
 
@@ -126,7 +150,9 @@ const socketHandler = (io) => {
         if (broadcasterId === socket.id) {
           delete broadcasters[auctionId];
           io.to(`auction:${auctionId}`).emit("broadcast-ended");
+          console.log(`Broadcaster disconnected for auction:${auctionId}`);
         } else {
+          // Notify broadcaster that a viewer disconnected
           io.to(broadcasterId).emit("viewer-disconnected", { viewerId: socket.id });
         }
       }
