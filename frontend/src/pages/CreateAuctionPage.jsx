@@ -151,7 +151,7 @@ export const CreateAuctionPage = () => {
         <div className="lg:flex-1 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:min-h-0">
           
           {/* Left Column: Interactive Form */}
-          <div className="lg:col-span-7 xl:col-span-6 flex flex-col h-full overflow-y-auto pr-4 custom-scrollbar pb-32 lg:pb-0">
+          <div className="lg:col-span-7 xl:col-span-6 flex flex-col lg:h-full lg:overflow-y-auto pr-4 custom-scrollbar pb-32 lg:pb-0">
             <form id="create-auction-form" onSubmit={handleSubmit} className="space-y-8">
               
               {/* Media Upload (Hero area of form) */}
@@ -257,6 +257,11 @@ export const CreateAuctionPage = () => {
                         onChange={(e) => {
                           setSearchTerm(e.target.value);
                           setShowDropdown(true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                          }
                         }}
                         className="flex-1 bg-transparent outline-none text-ink placeholder:text-ink/40 text-lg"
                       />
