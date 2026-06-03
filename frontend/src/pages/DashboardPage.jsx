@@ -92,7 +92,7 @@ export const DashboardPage = () => {
       <header className="mb-16 flex flex-col md:flex-row justify-between items-end gap-8">
         <div>
           <span className="text-sm uppercase tracking-[0.3em] text-gold font-bold mb-4 block letterpress">Member Dashboard</span>
-          <h1 className="text-7xl font-serif tracking-tight text-ink">Welcome, <span className="italic text-gold">{user?.name}</span></h1>
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif tracking-tight text-ink">Welcome, <span className="italic text-gold">{user?.name}</span></h1>
         </div>
         {(user?.role === 'consignor' || user?.role === 'seller') && (
           <Link 
@@ -114,7 +114,7 @@ export const DashboardPage = () => {
             </div>
             <div className="relative z-10">
               <p className="text-sm uppercase tracking-widest text-ink/50 font-bold mb-4">{stat.label}</p>
-              <p className="text-7xl font-serif font-bold text-gold">{stat.value}</p>
+              <p className="text-5xl sm:text-6xl md:text-7xl font-serif font-bold text-gold">{stat.value}</p>
             </div>
             <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-gold to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
           </div>

@@ -79,7 +79,7 @@ export const OrdersPage = () => {
         <span className="text-[10px] uppercase tracking-[0.4em] text-gold font-bold mb-4 block letterpress">
           Acquisition History
         </span>
-        <h1 className="text-6xl font-serif tracking-tight text-ink">My Orders</h1>
+        <h1 className="text-4xl sm:text-6xl font-serif tracking-tight text-ink">My Orders</h1>
         {orders.length > 0 && (
           <p className="mt-4 text-ink/60 text-sm font-light">
             {orders.length} winning acquisition{orders.length !== 1 ? "s" : ""}
@@ -130,23 +130,23 @@ export const OrdersPage = () => {
               {/* Details */}
               <div className="grow flex flex-col justify-between py-2">
                 <div>
-                  <div className="flex justify-between items-start mb-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4 sm:gap-0 mb-6">
                     <div>
                       <span className="text-[10px] uppercase tracking-widest text-ink/40 font-bold block mb-2">
                         Auction #{order.id.toString().padStart(4, "0")}
                       </span>
-                      <h3 className="text-3xl font-serif group-hover:text-gold transition-colors text-ink">
+                      <h3 className="text-2xl sm:text-3xl font-serif group-hover:text-gold transition-colors text-ink">
                         {order.title}
                       </h3>
                       <p className="text-sm text-ink/60 mt-1 font-light">
                         Sold by <span className="font-bold text-ink/80">{order.seller_name}</span>
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-left sm:text-right">
                       <span className="text-[10px] uppercase tracking-widest text-ink/40 font-bold block mb-2">
                         Winning Bid
                       </span>
-                      <span className="text-3xl font-serif font-bold text-gold">
+                      <span className="text-2xl sm:text-3xl font-serif font-bold text-gold">
                         ${Number(order.price).toLocaleString()}
                       </span>
                     </div>

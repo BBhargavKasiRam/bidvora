@@ -246,7 +246,6 @@ export const RegisterPage = () => {
     if (e.key === "Backspace" && !otpValues[index] && index > 0) {
       otpRefs.current[index - 1]?.focus();
     }
-    if (e.key === "Enter") handleNext();
   };
 
   const handleOtpPaste = (e) => {
@@ -333,7 +332,7 @@ export const RegisterPage = () => {
             </>
           )}
 
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-10">
+          <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className="space-y-10">
             <div className={`transition-all duration-200 ${animating ? "opacity-0 translate-x-4" : "opacity-100"}`}>
               
               {/* Step 1: Name */}
@@ -344,7 +343,6 @@ export const RegisterPage = () => {
                     autoFocus
                     value={form.name}
                     onChange={(e) => { setForm({ ...form, name: e.target.value.trimStart() }); setError(""); }}
-                    onKeyDown={(e) => e.key === "Enter" && handleNext()}
                     className="w-full border-b border-ink/20 py-5 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                   />
                 </div>
@@ -359,7 +357,6 @@ export const RegisterPage = () => {
                     type="email"
                     value={form.email}
                     onChange={(e) => { setForm({ ...form, email: e.target.value.trimStart() }); setError(""); }}
-                    onKeyDown={(e) => e.key === "Enter" && handleNext()}
                     className="w-full border-b border-ink/20 py-5 text-xl bg-transparent outline-none focus:border-gold transition-colors text-ink"
                   />
                   <p className="text-[10px] text-ink/40 mt-3 uppercase tracking-widest">
@@ -486,8 +483,7 @@ export const RegisterPage = () => {
               )}
 
               <button
-                type="button"
-                onClick={handleNext}
+                type="submit"
                 disabled={loading}
                 className="ml-auto px-10 py-4 bg-ink text-paper text-[10px] uppercase tracking-[0.4em] hover:bg-gold transition-all font-bold shadow-[0_4px_16px_rgba(42,35,24,0.2)] hover:shadow-[0_6px_20px_rgba(197,160,89,0.4)] flex items-center justify-center gap-2 rounded"
               >

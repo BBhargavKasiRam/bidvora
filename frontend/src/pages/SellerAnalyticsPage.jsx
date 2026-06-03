@@ -24,7 +24,7 @@ const StatCard = ({ title, value, icon: Icon, accentClass = "bg-gold", delay = 0
       <h3 className="text-[10px] uppercase tracking-widest text-ink/60 font-bold">{title}</h3>
       <Icon className="w-5 h-5 text-gold/60 group-hover:text-gold transition-colors" />
     </div>
-    <p className="text-4xl font-serif text-ink letterpress">{value}</p>
+    <p className="text-2xl sm:text-3xl md:text-4xl font-serif text-ink letterpress">{value}</p>
   </motion.div>
 );
 

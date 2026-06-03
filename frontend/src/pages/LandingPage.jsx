@@ -29,7 +29,7 @@ export const LandingPage = () => {
             transition={{ duration: 0.8 }}
           >
             <span className="text-[10px] uppercase tracking-[0.5em] text-accent glow-text font-bold mb-6 block">Est. 2026</span>
-            <h1 className="text-8xl md:text-9xl font-serif text-white mb-8 tracking-tighter leading-none glow-text">
+            <h1 className="text-5xl sm:text-7xl md:text-9xl font-serif text-white mb-8 tracking-tighter leading-none glow-text">
               The Art of <br />
               <span className="italic text-accent">Acquisition</span>
             </h1>

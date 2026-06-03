@@ -29,7 +29,7 @@ export const HomePage = () => {
         <motion.h1 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-7xl font-serif mb-6 tracking-tight text-ink"
+          className="text-5xl md:text-7xl font-serif mb-6 tracking-tight text-ink"
         >
           Bidvora <span className="text-accent italic glow-text">Elite</span>
         </motion.h1>

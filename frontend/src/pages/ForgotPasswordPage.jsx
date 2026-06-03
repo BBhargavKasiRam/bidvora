@@ -134,7 +134,6 @@ export const ForgotPasswordPage = () => {
     if (e.key === "Backspace" && !otpValues[index] && index > 0) {
       otpRefs.current[index - 1]?.focus();
     }
-    if (e.key === "Enter") handleVerifyOtp();
   };
 
   const handleOtpPaste = (e) => {
@@ -257,7 +256,7 @@ export const ForgotPasswordPage = () => {
             )}
 
             {step === 2 && (
-              <div className="space-y-8">
+              <form onSubmit={(e) => { e.preventDefault(); handleVerifyOtp(); }} className="space-y-8">
                 <div className="flex flex-col items-center gap-2">
                   <p className="text-sm font-serif text-ink text-center">Check your email</p>
                   <p className="text-[10px] uppercase tracking-widest text-ink/50 text-center">
@@ -307,8 +306,7 @@ export const ForgotPasswordPage = () => {
                     Back
                   </button>
                   <button
-                    type="button"
-                    onClick={handleVerifyOtp}
+                    type="submit"
                     disabled={loading || otpValues.join("").length < 6}
                     className="px-10 py-3 bg-ink text-white text-xs uppercase tracking-[0.25em] rounded-full hover:bg-gold transition disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-ink/20"
                   >
@@ -316,7 +314,7 @@ export const ForgotPasswordPage = () => {
                     Verify
                   </button>
                 </div>
-              </div>
+              </form>
             )}
 
             {step === 3 && (

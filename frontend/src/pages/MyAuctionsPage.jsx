@@ -90,7 +90,7 @@ export const MyAuctionsPage = () => {
                   ) : (
                     <>
                       {assignForm.auctionId === auction.id ? (
-                        <div className="space-y-3">
+                        <form onSubmit={(e) => { e.preventDefault(); handleAssignMediator(); }} className="space-y-3">
                           <div>
                             <div className="space-y-2">
                               <input 
@@ -126,20 +126,21 @@ export const MyAuctionsPage = () => {
                           </div>
                           <div className="flex gap-2">
                             <button 
-                              onClick={handleAssignMediator}
+                              type="submit"
                               disabled={!assignForm.mediatorId || assignForm.commission === ""}
                               className="flex-1 py-2 bg-ink text-white text-[10px] uppercase tracking-widest font-bold hover:bg-gold disabled:opacity-50 transition"
                             >
                               Confirm
                             </button>
                             <button 
+                              type="button"
                               onClick={() => setAssignForm({ auctionId: null, mediatorId: "", commission: "" })} 
                               className="py-2 px-4 border border-ink/10 text-ink text-[10px] uppercase tracking-widest font-bold hover:bg-ink/5"
                             >
                               Cancel
                             </button>
                           </div>
-                        </div>
+                        </form>
                       ) : (
                         <button 
                           onClick={() => setAssignForm({ auctionId: auction.id, mediatorId: "", commission: "" })}

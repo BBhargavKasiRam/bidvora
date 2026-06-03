@@ -152,7 +152,7 @@ export const CreateAuctionPage = () => {
           
           {/* Left Column: Interactive Form */}
           <div className="lg:col-span-7 xl:col-span-6 flex flex-col h-full overflow-y-auto pr-4 custom-scrollbar pb-32 lg:pb-0">
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form id="create-auction-form" onSubmit={handleSubmit} className="space-y-8">
               
               {/* Media Upload (Hero area of form) */}
               <div 
@@ -410,7 +410,8 @@ export const CreateAuctionPage = () => {
             {/* Desktop Submit Button linked to Form */}
             <div className="w-full max-w-sm mt-12">
               <button
-                onClick={handleSubmit}
+                type="submit"
+                form="create-auction-form"
                 disabled={loading || !selectedMediator}
                 className={`w-full py-5 rounded-2xl font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 group overflow-hidden relative shadow-lg ${
                   loading || !selectedMediator ? "bg-ink/10 text-ink/40 cursor-not-allowed shadow-none" : "bg-ink text-gold hover:bg-gold hover:text-ink hover:shadow-[0_10px_30px_rgba(197,160,89,0.3)] hover:-translate-y-1"
