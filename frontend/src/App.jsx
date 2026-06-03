@@ -63,6 +63,10 @@ export default function App() {
                   element={<AuctioneerDashboardPage />}
                 />
                 <Route
+                  path="/dashboard"
+                  element={<Navigate to="/" replace />}
+                />
+                <Route
                   path="/auctioneer/dashboard"
                   element={<AuctioneerDashboardPage />}
                 />
