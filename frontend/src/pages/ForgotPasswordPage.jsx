@@ -148,8 +148,8 @@ export const ForgotPasswordPage = () => {
   const stepLabels = ["Email", "Verify OTP", "New Password"];
 
   return (
-    <div className="min-h-[calc(100vh-80px)] flex items-center justify-center bg-white px-4">
-      <div className="max-w-xl w-full p-14 rounded-2xl bg-white border border-ink/5 shadow-xl relative overflow-hidden">
+    <div className="min-h-[calc(100vh-80px)] py-8 flex items-center justify-center bg-white px-4">
+      <div className="max-w-xl w-full p-6 sm:p-10 md:p-14 rounded-2xl bg-white border border-ink/5 shadow-xl relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold/40 via-gold to-gold/40" />
 
         <div className="text-center mb-8">

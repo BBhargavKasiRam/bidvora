@@ -173,9 +173,12 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-80px)] flex items-center justify-center relative px-4 overflow-hidden">
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gold/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
-      <div className="max-w-xl w-full p-14 glass-card relative overflow-hidden z-10 shadow-[0_20px_60px_rgba(42,35,24,0.15)]">
+    <div className="min-h-[calc(100vh-80px)] py-8 flex items-center justify-center relative px-4 overflow-x-hidden">
+      {/* Background Lighting */}
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+
+      <div className="max-w-xl w-full p-6 sm:p-10 md:p-14 glass-card relative z-10 shadow-[0_20px_60px_rgba(42,35,24,0.15)] bg-white rounded-2xl border border-ink/5">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold/40 via-gold to-gold/40"></div>
 
         <div className="text-center mb-10">

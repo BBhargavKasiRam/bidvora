@@ -260,9 +260,9 @@ export const RegisterPage = () => {
   const stepLabels = ["Name", "Email", "Verify", "Setup"];
 
   return (
-    <div className="h-[calc(100vh-80px)] flex items-center justify-center relative px-4 overflow-hidden">
+    <div className="min-h-[calc(100vh-80px)] py-8 flex items-center justify-center relative px-4 overflow-x-hidden">
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gold/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
-      <div className="max-w-xl w-full p-14 glass-card relative overflow-hidden z-10 shadow-[0_20px_60px_rgba(42,35,24,0.15)] bg-white rounded-2xl border border-ink/5">
+      <div className="max-w-xl w-full p-6 sm:p-10 md:p-14 glass-card relative overflow-hidden z-10 shadow-[0_20px_60px_rgba(42,35,24,0.15)] bg-white rounded-2xl border border-ink/5">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold/40 via-gold to-gold/40"></div>
 
         <div className="mb-10 text-center">
