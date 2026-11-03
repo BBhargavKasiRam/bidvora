@@ -28,7 +28,6 @@
   },
   "description": "",
   "engines": {
-    "node": "20.19.4",
-    "npm": "10.8.2"
+    "node": "26.x"
   }
 }

@@ -161,6 +161,7 @@ export const ChatPanel = ({ auctionId, socket, sellerId }) => {
                   )}
                 </div>
                 <div className={`relative max-w-[85%] px-4 py-2 text-sm leading-relaxed ${isMe ? "bg-ink text-paper" : isMediator ? "bg-gold/10 border border-gold/30 text-ink" : "bg-white border border-ink/10 text-ink"} shadow-sm`}>
+                  {/* {msg.message} */}
                   <div
                     dangerouslySetInnerHTML={{
                       __html: msg.message
