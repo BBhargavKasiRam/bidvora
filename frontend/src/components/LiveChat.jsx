@@ -121,15 +121,7 @@ export const LiveChat = React.memo(({ auctionId }) => {
                   </span>
                 </div>
                 <p className={`text-sm leading-relaxed break-words ${msg.isPayment ? 'font-bold text-gold' : 'text-ink/80'}`}>
-                  {/*msg.text*/}
-                  <div
-                      className={`text-sm leading-relaxed break-words ${
-                        msg.isPayment ? 'font-bold text-gold' : 'text-ink/80'
-                      }`}
-                      dangerouslySetInnerHTML={{
-                        __html: msg.text
-                      }}
-                  />
+                  {msg.text}
                 </p>
               </div>
             </motion.div>
